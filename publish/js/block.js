@@ -1,27 +1,150 @@
 import * as THREE from 'three';
-const map = new THREE.TextureLoader().load('./publish/image/square-outline-textured.png');
-map.colorSpace = THREE.SRGBColorSpace;
+import { TGALoader } from 'three/examples/jsm/loaders/TGALoader.js';
 
-var cubeGeo = new THREE.BoxGeometry(WIDTH, WIDTH, WIDTH);
-cubeGeo.castShadow = true
-var cubeMaterial = new THREE.MeshLambertMaterial({ color: 0xfeb74c, map: map });
 export class Block {
+    loader = new TGALoader()
+    cubeGeo = new THREE.BoxGeometry(WIDTH, WIDTH, WIDTH);
     scene
-    positon = new THREE.Vector2()
-    constructor(scene, positon = new THREE.Vector2(0, 0)) {
+    positon = new THREE.Vector3()
+    physicsWorld
+    body
+    runVelocity = 20
+    walkVelocity = 13
+    ismover = false
+    // temporary data
+    walkDirection = new THREE.Vector3(0, 0, 1)
+    // trục quay
+    rotateAngle = new THREE.Vector3(0, 1, 0)
+    rotateQuarternion = new THREE.Quaternion()
+    cameraTarget = new THREE.Vector3()
+
+    constructor(scene, physicsWorld, isavailabel, positon = new THREE.Vector3(0, 0, 0)) {
         this.positon = positon
         this.scene = scene
+        this.physicsWorld = physicsWorld
+
+        if (isavailabel)
+            this.texture = this.loader.load('./publish/image/crate_color8.tga');
+        else
+            this.texture = this.loader.load('./publish/image/crate_grey8.tga');
+        this.texture.colorSpace = THREE.SRGBColorSpace;
+
+        this.cubeMaterial = new THREE.MeshPhongMaterial({
+            color: 0xffffff,
+            map: this.texture,
+
+        });
+
+        this.isavailabel = isavailabel
         this.load()
     }
+    setisavailabel(isavailabel) {
+        this.isavailabel = isavailabel
+        if (isavailabel)
+            this.texture = this.loader.load('./publish/image/crate_color8.tga');
+        else
+            this.texture = this.loader.load('./publish/image/crate_grey8.tga');
+        this.cube.material.map = this.texture
+    }
+    setPosition(positon) {
+        this.body.position.copy(positon)
+        this.cbue.position.copy(positon)
+
+    }
+    setQuaternion(quaternion) {
+        this.body.quaternion.copy(quaternion)
+        this.cube.quaternion.copy(quaternion)
+    }
+    setVelocity(runVelocity, walkVelocity) {
+        this.runVelocity = runVelocity
+        this.walkVelocity = walkVelocity
+    }
     load() {
-        this.cube = new THREE.Mesh(cubeGeo, cubeMaterial);
-        this.cube.position.set(this.positon.x, WIDTH / 2, this.positon.y);
+
+        this.cube = new THREE.Mesh(this.cubeGeo, this.cubeMaterial);
+        this.cube.position.copy(this.positon)
         this.cube.castShadow = true
+
+        var shape = new CANNON.Box(new CANNON.Vec3(WIDTH / 2, WIDTH / 2, WIDTH / 2));
+        this.body = new CANNON.Body({
+            mass: 1,
+            shape: shape,
+            material: new CANNON.Material(),
+            collisionFilterGroup: GROUP3,
+            collisionFilterMask: GROUP1 | GROUP4
+        });
+
+
+        this.body.position.copy(this.cube.position)
+        this.body.quaternion.copy(this.cube.quaternion);
+
+        this.physicsWorld.addBody(this.body);
         this.scene.add(this.cube)
-    }
-    controlcube(position) {
 
     }
 
+    update() {
+        this.cube.position.copy(this.body.position)
+        this.cube.quaternion.copy(this.body.quaternion)
+    }
 
+    move(delta, currentAction, directionOffset) {
+
+
+        // quay mô hình
+        this.rotateQuarternion.setFromAxisAngle(this.rotateAngle, directionOffset + Math.PI)
+        // thông số 2 là độ mượt khi quay theo từng step 
+        this.cube.quaternion.rotateTowards(this.rotateQuarternion, 3)
+        this.body.quaternion.copy(this.cube.quaternion)
+
+        // tính direction
+        this._directionOffset(directionOffset)
+
+        // run/walk velocity
+        const velocity = currentAction == 'Run' ? this.runVelocity : this.walkVelocity
+
+        // move cube & camera
+
+        var moveX = this.walkDirection.x * velocity * delta
+        var moveZ = this.walkDirection.z * velocity * delta
+
+
+
+
+        var mover = setInterval(() => {
+
+            if (Math.round(this.cube.position.x) % WIDTH == 0 && Math.round(this.cube.position.z) % WIDTH == 0 && this.ismover) {
+                this.cube.position.x = Math.round(this.cube.position.x)
+                this.cube.position.z = Math.round(this.cube.position.z)
+
+                this.ismover = false
+                clearInterval(mover);
+            }
+            else {
+
+                this.ismover = true
+                this.cube.position.x += moveX
+                this.cube.position.z += moveZ
+                this.body.position.x += moveX
+                this.body.position.z += moveZ
+
+            }
+        }, 1)
+
+
+
+    }
+    _directionOffset(directionOffset) {
+        if (directionOffset == 0) {
+            this.walkDirection.set(0, 0, -1)
+        } else if (directionOffset == Math.PI) {
+            this.walkDirection.set(0, 0, 1)
+        } else if (directionOffset == Math.PI / 2) {
+            this.walkDirection.set(-1, 0, 0)
+        } else if (directionOffset == - Math.PI / 2) {
+            this.walkDirection.set(1, 0, 0)
+        }
+
+
+    }
 }

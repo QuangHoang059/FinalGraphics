@@ -13,3 +13,10 @@ const S = 's'
 const D = 'd'
 const SHIFT = 'shift'
 const DIRECTIONS = [W, A, S, D]
+
+
+//Group
+const GROUP1 = 1;
+const GROUP2 = 2;
+const GROUP3 = 3;
+const GROUP4 = 4;

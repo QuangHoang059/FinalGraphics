@@ -1,5 +1,7 @@
 import * as THREE from 'three'
-import { FBXLoader } from 'three/loaders/FBXLoader.js';
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
+
+
 export class Character {
     model
     mixer
@@ -7,11 +9,12 @@ export class Character {
     camera
     scene
     cameraAngle = 0
-    pathAnimations = ['Walk', 'Run', 'Walk right', 'Walk left', 'Walk Backwards'];
+    pathAnimations = ['Walk', 'Run', 'Push'];
     loadAnimation = new FBXLoader();
-    keysPressed = {}
     // state
+    keysPressed = {}
     toggleRun = true
+    togglePush = false
     currentAction = 'Idle'
     // temporary data
     walkDirection = new THREE.Vector3()
@@ -22,45 +25,97 @@ export class Character {
 
     // constants
     fadeDuration = 0.2
-    runVelocity = 25
-    walkVelocity = 15
+    runVelocity = 20
+    walkVelocity = 13
+    position = new THREE.Vector3(0, 0, 0)
+    mover
+    ismover = false
 
-    constructor(scene, camera, currentAction, fadeDuration = 0.2) {
+    constructor(scene, camera, physicsWorld, position, currentAction, fadeDuration = 0.2) {
         this.currentAction = currentAction
         this.fadeDuration = fadeDuration
         this.cameraAngle = 0
         this.camera = camera
         this.scene = scene
-        this.initModel()
+        this.position = position
+        this.physicsWorld = physicsWorld
+
+        this._camera = this.camera.clone()
+
 
     }
-    initModel() {
+
+    setPosition(position) {
+        var positionbody = position.clone()
+
+        positionbody.setY(position.y + 9)
+        this.body.position.copy(positionbody)
+        this.model.position.copy(position)
+
+    }
+    setQuaternion(quaternion) {
+
+        this.body.quaternion.copy(quaternion)
+        this.model.quaternion.copy(quaternion)
+    }
+    async initModel() {
         const loader = new FBXLoader();
-        this.loadAnimations()
+        await this.loadAnimations()
             .then((animations) => {
                 loader.load('publish/models/stickman/source/Idle.fbx', (gltf) => {
 
                     this.model = gltf;
                     this.model.scale.setScalar(0.002);
-
-
                     this.scene.add(this.model);
                     this.model.rotation.z = Math.PI
                     this.model.rotation.x = Math.PI
+                    this.model.position.copy(this.position)
                     // set tạo bóng cho tất cả các mesh của this.model
-                    this.model.traverse(function (object) {
+                    let _this = this
+                    this.model.traverse(function (child) {
 
-                        if (object.isMesh) object.castShadow = true;
+                        if (child.isMesh) {
+
+                            var loadTexture = new THREE.TextureLoader()
+                            var texturemap = loadTexture.load('publish/image/square-outline-textured.png')
+                            child.material.color = 0x00000
+                            child.material.map = texturemap
+
+
+
+                            var halfExtents = new CANNON.Vec3(
+                                4,
+                                9,
+                                4
+                            );
+
+                            var shape = new CANNON.Box(halfExtents);
+                            _this.characterPhyMat = new CANNON.Material()
+                            _this.body = new CANNON.Body({
+                                mass: 1000,
+                                shape: shape,
+                                material: _this.characterPhyMat,
+                                collisionFilterGroup: GROUP2,
+                                collisionFilterMask: GROUP1 | GROUP4
+
+                            });
+
+                            var position = _this.model.position.clone()
+
+                            position.setY(position.y + 9)
+                            _this.body.position.copy(position)
+                            _this.body.quaternion.copy(_this.model.quaternion);
+
+                            _this.physicsWorld.addBody(_this.body);
+
+                            child.castShadow = true;
+                        }
 
                     });
-                    const axisHelper = new THREE.AxesHelper(10);
-
-                    // Add the axis helper to the scene
-                    this.scene.add(axisHelper);
 
                     // khởi tạo khung xương cho this.model
                     var skeleton = new THREE.SkeletonHelper(this.model);
-                    skeleton.visible = false;
+                    skeleton.visible = true;
                     this.scene.add(skeleton);
 
 
@@ -76,17 +131,21 @@ export class Character {
                         a.name = this.pathAnimations[i]
                         this.animationsMap.set(a.name, this.mixer.clipAction(a))
                     })
-
-
+                    this.isStep = false
                     document.addEventListener('keydown', (event) => {
-                        if (event.shiftKey && this) {
-                            this.switchRunToggle();
-                        } else {
-                            this.keysPressed[event.key.toLowerCase()] = true;
+                        if (this.ismover == false) {
+                            if (event.shiftKey && this) {
+                                this.switchRunToggle();
+                            } else { this.isStep == false }
+                            {
+                                this.keysPressed[event.key.toLowerCase()] = true;
+                                this.isStep = true
+                            }
                         }
                     }, false);
                     document.addEventListener('keyup', (event) => {
                         this.keysPressed[event.key.toLowerCase()] = false;
+                        this.isStep = false
                     }, false);
 
                     this.animationsMap.forEach((value, key) => {
@@ -98,6 +157,9 @@ export class Character {
 
                 })
             })
+
+
+
     }
 
     // load animation
@@ -119,60 +181,92 @@ export class Character {
     switchRunToggle() {
         this.toggleRun = !this.toggleRun
     }
+    move(delta) {
 
-    update(delta) {
-        const directionPressed = DIRECTIONS.some(key => this.keysPressed[key] == true)
-
-        var play = '';
-        if (directionPressed && this.toggleRun) {
-            play = 'Run'
-        } else if (directionPressed) {
-            play = 'Walk'
-        } else {
-            play = 'Idle'
-        }
-
-        if (this.currentAction != play) {
-            const toPlay = this.animationsMap.get(play)
-            const current = this.animationsMap.get(this.currentAction)
-
-            current.fadeOut(this.fadeDuration)
-            toPlay.reset().fadeIn(this.fadeDuration).play();
-
-            this.currentAction = play
-        }
-
-        this.mixer.update(delta)
-
-        if (this.currentAction == 'Run' || this.currentAction == 'Walk') {
+        if (this.currentAction == 'Run' || this.currentAction == 'Push') {
 
             // bù góc chuyển động chéo
-            var directionOffset = this._directionOffset(this.keysPressed)
+            this.directionOffset = this._directionOffset(this.keysPressed)
 
             // quay mô hình
-            this.rotateQuarternion.setFromAxisAngle(this.rotateAngle, directionOffset + Math.PI)
-            // thông số 2 là độ mượt khi quay theo từng step
-            this.model.quaternion.rotateTowards(this.rotateQuarternion, 0.1)
+            this.rotateQuarternion.setFromAxisAngle(this.rotateAngle, this.directionOffset + Math.PI)
+            // thông số 2 là độ mượt khi quay theo từng step 
+            this.model.quaternion.rotateTowards(this.rotateQuarternion, 3)
+            this.body.quaternion.copy(this.model.quaternion)
 
-            // tính direction
-            this.camera.getWorldDirection(this.walkDirection)
-            this.walkDirection.y = 0
-            this.walkDirection.normalize()
-
-            this.walkDirection.applyAxisAngle(this.rotateAngle, directionOffset)
 
             // run/walk velocity
             const velocity = this.currentAction == 'Run' ? this.runVelocity : this.walkVelocity
 
             // move model & camera
-            const moveX = this.walkDirection.x * velocity * delta
-            const moveZ = this.walkDirection.z * velocity * delta
-            this.model.position.x += moveX
-            this.model.position.z += moveZ
-            this.updateCameraTarget()
-        }
-    }
 
+            var moveX = this.walkDirection.x * velocity * delta
+            var moveZ = this.walkDirection.z * velocity * delta
+
+
+
+
+            var mover = setInterval(() => {
+
+                if (Math.round(this.model.position.x) % WIDTH == 0 && Math.round(this.model.position.z) % WIDTH == 0 && this.ismover) {
+                    this.model.position.x = Math.round(this.model.position.x)
+                    this.model.position.z = Math.round(this.model.position.z)
+                    this.isStep = true
+                    this.ismover = false
+                    clearInterval(mover);
+                }
+                else {
+                    this.isStep = false
+                    this.ismover = true
+                    this.model.position.x += moveX
+                    this.model.position.z += moveZ
+                    this.body.position.x += moveX
+                    this.body.position.z += moveZ
+
+                }
+            }, 1)
+
+        }
+
+    }
+    update(delta) {
+        const directionPressed = DIRECTIONS.some(key => this.keysPressed[key] == true)
+        var play = '';
+        if (directionPressed && this.togglePush) {
+            play = 'Push'
+        }
+        else if (directionPressed && this.toggleRun) {
+            play = 'Run'
+        } else if (directionPressed) {
+            play = 'Walk'
+        }
+        else {
+            play = 'Idle'
+        }
+        if (this.currentAction != play) {
+            const toPlay = this.animationsMap.get(play)
+            const current = this.animationsMap.get(this.currentAction)
+            current.fadeOut(this.fadeDuration)
+            toPlay.reset().fadeIn(this.fadeDuration).play();
+            this.currentAction = play
+
+        }
+        if (this.isStep)
+            this.move(delta)
+        // update physical
+
+        this.mixer.update(delta)
+        this.updatePhysical()
+
+    }
+    updatePhysical() {
+        var positionmodel = this.body.position.clone()
+
+        positionmodel.y = positionmodel.y - 9
+        this.model.position.copy(positionmodel)
+        this.model.quaternion.copy(this.body.quaternion)
+
+    }
     updateCameraTarget() {
 
         this.cameraAngle = THREE.MathUtils.lerp(this.cameraAngle, 0, 0.01);
@@ -183,26 +277,38 @@ export class Character {
 
     _directionOffset() {
         var directionOffset = 0 // w
-
         if (this.keysPressed[W]) {
-            if (this.keysPressed[A]) {
-                directionOffset = Math.PI / 4 // w+a
-            } else if (this.keysPressed[D]) {
-                directionOffset = - Math.PI / 4 // w+d
-            }
+            this.walkDirection.set(0, 0, -1)
         } else if (this.keysPressed[S]) {
-            if (this.keysPressed[A]) {
-                directionOffset = Math.PI / 4 + Math.PI / 2 // s+a
-            } else if (this.keysPressed[D]) {
-                directionOffset = -Math.PI / 4 - Math.PI / 2 // s+d
-            } else {
-                directionOffset = Math.PI // s
-            }
+            this.walkDirection.set(0, 0, 1)
+            directionOffset = Math.PI // s
         } else if (this.keysPressed[A]) {
+            this.walkDirection.set(-1, 0, 0)
             directionOffset = Math.PI / 2 // a
         } else if (this.keysPressed[D]) {
+            this.walkDirection.set(1, 0, 0)
             directionOffset = - Math.PI / 2 // d
         }
+
+        // if (this.keysPressed[W]) {
+        //     if (this.keysPressed[A]) {
+        //         directionOffset = Math.PI / 4 // w+a
+        //     } else if (this.keysPressed[D]) {
+        //         directionOffset = - Math.PI / 4 // w+d
+        //     }
+        // } else if (this.keysPressed[S]) {
+        //     if (this.keysPressed[A]) {
+        //         directionOffset = Math.PI / 4 + Math.PI / 2 // s+a
+        //     } else if (this.keysPressed[D]) {
+        //         directionOffset = -Math.PI / 4 - Math.PI / 2 // s+d
+        //     } else {
+        //         directionOffset = Math.PI // s
+        //     }
+        // } else if (this.keysPressed[A]) {
+        //     directionOffset = Math.PI / 2 // a
+        // } else if (this.keysPressed[D]) {
+        //     directionOffset = - Math.PI / 2 // d
+        // }
 
         return directionOffset
     }
