@@ -140,7 +140,7 @@ function initGraphis() {
     clock = new THREE.Clock();
     // thiết lập thế giới vật lý 
     physicsWorld = new CANNON.World();
-    physicsWorld.gravity.set(0, -100, 0); // Thiết lập trọng lực
+    physicsWorld.gravity.set(0, -9.8, 0); // Thiết lập trọng lực
     physicsWorld.broadphase = new CANNON.NaiveBroadphase();
 
     physicsWorld.defaultContactMaterial.contactEquationStiffness = 1e7;
@@ -161,10 +161,13 @@ function createPanel() {
 
     settings = {
         'Personal camera': true,
+        'Skeleton': false
 
     };
     folder1.add(settings, 'Personal camera').onChange(changePersonCamera);
-
+    folder1.add(settings, 'Skeleton').onChange((Visibility) => {
+        character.skeleton.visible = Visibility
+    });
     folder1.open();
 
 

@@ -104,6 +104,26 @@ export class MapLevel {
         return [ground, body]
     }
     checkMove(block) {
+        let direction = [0, 0]
+        if (this.character.directionOffset == 0) {
+            direction = [0, -1]
+        } else if (this.character.directionOffset == Math.PI) {
+            direction = [0, 1]
+        } else if (this.character.directionOffset == Math.PI / 2) {
+            direction = [-1, 0]
+        } else if (this.character.directionOffset == - Math.PI / 2) {
+            direction = [1, 0]
+        }
+        var x = Math.round(direction[0] + block.cube.position.x / WIDTH)
+        var y = Math.round(direction[1] + block.cube.position.z / WIDTH)
+        if (x > 0 && y > 0 && x < this.structure.length && y < this.structure[0].length) {
+            if (this.structure[x][y] == BOX) {
+                return false
+            }
+        }
+
+
+        return true
 
 
     }
@@ -129,12 +149,16 @@ export class MapLevel {
         }
         );
 
-        if (isCollidingWithBlock) {
+        if (isCollidingWithBlock && (this.checkMove(collidingBlock))) {
             if (this.character.ismover == true) {
                 this.character.togglePush = true
+                // console.log(Math.round(collidingBlock.cube.position.x / WIDTH), Math.round(collidingBlock.cube.position.z / WIDTH));
+                this.structure[Math.round(collidingBlock.cube.position.x / WIDTH)][Math.round(collidingBlock.cube.position.z / WIDTH)] = AIR
                 collidingBlock.move(mixerUpdateDelta, this.character.currentAction, this.character.directionOffset)
-                // collidingBlock.setisavailabel(0)
+                // this.structure[Math.round(position.x / WIDTH)][Math.round(position.z / WIDTH)] = BOX
 
+
+                // collidingBlock.setisavailabel(0)
                 this.lastCollisionTime = Date.now();
             }
         }
@@ -185,4 +209,3 @@ export class MapLevel {
 
     }
 }
-

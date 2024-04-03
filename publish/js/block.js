@@ -88,7 +88,7 @@ export class Block {
         this.cube.quaternion.copy(this.body.quaternion)
     }
 
-    move(delta, currentAction, directionOffset) {
+    async move(delta, currentAction, directionOffset) {
 
 
         // quay mô hình
@@ -116,7 +116,6 @@ export class Block {
             if (Math.round(this.cube.position.x) % WIDTH == 0 && Math.round(this.cube.position.z) % WIDTH == 0 && this.ismover) {
                 this.cube.position.x = Math.round(this.cube.position.x)
                 this.cube.position.z = Math.round(this.cube.position.z)
-
                 this.ismover = false
                 clearInterval(mover);
             }
@@ -132,7 +131,7 @@ export class Block {
         }, 1)
 
 
-
+        return this.cube.position
     }
     _directionOffset(directionOffset) {
         if (directionOffset == 0) {

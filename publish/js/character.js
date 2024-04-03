@@ -131,21 +131,19 @@ export class Character {
                         a.name = this.pathAnimations[i]
                         this.animationsMap.set(a.name, this.mixer.clipAction(a))
                     })
-                    this.isStep = false
+
                     document.addEventListener('keydown', (event) => {
                         if (this.ismover == false) {
                             if (event.shiftKey && this) {
                                 this.switchRunToggle();
-                            } else { this.isStep == false }
-                            {
+                            } else {
                                 this.keysPressed[event.key.toLowerCase()] = true;
-                                this.isStep = true
+
                             }
                         }
                     }, false);
                     document.addEventListener('keyup', (event) => {
                         this.keysPressed[event.key.toLowerCase()] = false;
-                        this.isStep = false
                     }, false);
 
                     this.animationsMap.forEach((value, key) => {
@@ -182,7 +180,7 @@ export class Character {
         this.toggleRun = !this.toggleRun
     }
     move(delta) {
-
+        console.log(this.currentAction);
         if (this.currentAction == 'Run' || this.currentAction == 'Push') {
 
             // bù góc chuyển động chéo
@@ -211,12 +209,13 @@ export class Character {
                 if (Math.round(this.model.position.x) % WIDTH == 0 && Math.round(this.model.position.z) % WIDTH == 0 && this.ismover) {
                     this.model.position.x = Math.round(this.model.position.x)
                     this.model.position.z = Math.round(this.model.position.z)
-                    this.isStep = true
+
+
                     this.ismover = false
                     clearInterval(mover);
                 }
                 else {
-                    this.isStep = false
+
                     this.ismover = true
                     this.model.position.x += moveX
                     this.model.position.z += moveZ
@@ -251,7 +250,7 @@ export class Character {
             this.currentAction = play
 
         }
-        if (this.isStep)
+        if (!this.ismover)
             this.move(delta)
         // update physical
 
@@ -261,7 +260,6 @@ export class Character {
     }
     updatePhysical() {
         var positionmodel = this.body.position.clone()
-
         positionmodel.y = positionmodel.y - 9
         this.model.position.copy(positionmodel)
         this.model.quaternion.copy(this.body.quaternion)
