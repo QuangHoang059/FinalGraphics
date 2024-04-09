@@ -80,9 +80,6 @@ export class Character {
                             var texturemap = loadTexture.load('publish/image/square-outline-textured.png')
                             child.material.color = 0x00000
                             child.material.map = texturemap
-
-
-
                             var halfExtents = new CANNON.Vec3(
                                 4,
                                 9,
@@ -132,19 +129,7 @@ export class Character {
                         this.animationsMap.set(a.name, this.mixer.clipAction(a))
                     })
 
-                    document.addEventListener('keydown', (event) => {
-                        if (this.ismover == false) {
-                            if (event.shiftKey && this) {
-                                this.switchRunToggle();
-                            } else {
-                                this.keysPressed[event.key.toLowerCase()] = true;
 
-                            }
-                        }
-                    }, false);
-                    document.addEventListener('keyup', (event) => {
-                        this.keysPressed[event.key.toLowerCase()] = false;
-                    }, false);
 
                     this.animationsMap.forEach((value, key) => {
                         if (key == this.currentAction) {
@@ -180,12 +165,11 @@ export class Character {
         this.toggleRun = !this.toggleRun
     }
     move(delta) {
-        console.log(this.currentAction);
+
         if (this.currentAction == 'Run' || this.currentAction == 'Push') {
 
             // bù góc chuyển động chéo
             this.directionOffset = this._directionOffset(this.keysPressed)
-
             // quay mô hình
             this.rotateQuarternion.setFromAxisAngle(this.rotateAngle, this.directionOffset + Math.PI)
             // thông số 2 là độ mượt khi quay theo từng step 
@@ -201,21 +185,20 @@ export class Character {
             var moveX = this.walkDirection.x * velocity * delta
             var moveZ = this.walkDirection.z * velocity * delta
 
+            if (this.mover) { clearInterval(this.mover); }
 
-
-
-            var mover = setInterval(() => {
-
-                if (Math.round(this.model.position.x) % WIDTH == 0 && Math.round(this.model.position.z) % WIDTH == 0 && this.ismover) {
+            var countStep = 0
+            this.ismover = false
+            this.mover = setInterval(() => {
+                if (Math.round(this.model.position.x) % WIDTH == 0 && Math.round(this.model.position.z) % WIDTH == 0 && this.ismover && countStep > 10) {
                     this.model.position.x = Math.round(this.model.position.x)
                     this.model.position.z = Math.round(this.model.position.z)
-
-
                     this.ismover = false
-                    clearInterval(mover);
+                    console.log("step");
+                    clearInterval(this.mover);
                 }
                 else {
-
+                    countStep += 1
                     this.ismover = true
                     this.model.position.x += moveX
                     this.model.position.z += moveZ
@@ -250,10 +233,10 @@ export class Character {
             this.currentAction = play
 
         }
+
         if (!this.ismover)
             this.move(delta)
         // update physical
-
         this.mixer.update(delta)
         this.updatePhysical()
 

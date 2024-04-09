@@ -9,7 +9,7 @@ export class Block {
     physicsWorld
     body
     runVelocity = 20
-    walkVelocity = 13
+    walkVelocity = 25
     ismover = false
     // temporary data
     walkDirection = new THREE.Vector3(0, 0, 1)
@@ -17,7 +17,7 @@ export class Block {
     rotateAngle = new THREE.Vector3(0, 1, 0)
     rotateQuarternion = new THREE.Quaternion()
     cameraTarget = new THREE.Vector3()
-
+    mover
     constructor(scene, physicsWorld, isavailabel, positon = new THREE.Vector3(0, 0, 0)) {
         this.positon = positon
         this.scene = scene
@@ -28,10 +28,10 @@ export class Block {
         else
             this.texture = this.loader.load('./publish/image/crate_grey8.tga');
         this.texture.colorSpace = THREE.SRGBColorSpace;
-
         this.cubeMaterial = new THREE.MeshPhongMaterial({
             color: 0xffffff,
             map: this.texture,
+
 
         });
 
@@ -44,6 +44,8 @@ export class Block {
             this.texture = this.loader.load('./publish/image/crate_color8.tga');
         else
             this.texture = this.loader.load('./publish/image/crate_grey8.tga');
+
+        this.texture.colorSpace = THREE.SRGBColorSpace;
         this.cube.material.map = this.texture
     }
     setPosition(positon) {
@@ -73,7 +75,7 @@ export class Block {
             collisionFilterGroup: GROUP3,
             collisionFilterMask: GROUP1 | GROUP4
         });
-
+        // this.body.collisionFilterMask &= ~GROUP3;
 
         this.body.position.copy(this.cube.position)
         this.body.quaternion.copy(this.cube.quaternion);
@@ -88,16 +90,8 @@ export class Block {
         this.cube.quaternion.copy(this.body.quaternion)
     }
 
-    async move(delta, currentAction, directionOffset) {
-
-
-        // quay mô hình
-        this.rotateQuarternion.setFromAxisAngle(this.rotateAngle, directionOffset + Math.PI)
-        // thông số 2 là độ mượt khi quay theo từng step 
-        this.cube.quaternion.rotateTowards(this.rotateQuarternion, 3)
-        this.body.quaternion.copy(this.cube.quaternion)
-
-        // tính direction
+    async move(delta, currentAction, directionOffset, callback) {
+        // // tính direction
         this._directionOffset(directionOffset)
 
         // run/walk velocity
@@ -108,19 +102,24 @@ export class Block {
         var moveX = this.walkDirection.x * velocity * delta
         var moveZ = this.walkDirection.z * velocity * delta
 
+        if (this.mover) { clearInterval(this.mover); }
 
 
-
-        var mover = setInterval(() => {
-
-            if (Math.round(this.cube.position.x) % WIDTH == 0 && Math.round(this.cube.position.z) % WIDTH == 0 && this.ismover) {
+        this.ismover = false
+        var countStep = 0
+        this.mover = setInterval(() => {
+            if (Math.round(this.cube.position.x) % WIDTH == 0 && Math.round(this.cube.position.z) % WIDTH == 0 && this.ismover && countStep > 10) {
                 this.cube.position.x = Math.round(this.cube.position.x)
                 this.cube.position.z = Math.round(this.cube.position.z)
+                this.body.position.copy(this.cube.position)
+
                 this.ismover = false
-                clearInterval(mover);
+                clearInterval(this.mover);
+                callback(this.cube.position)
             }
             else {
-
+                // console.log("step");
+                countStep += 1
                 this.ismover = true
                 this.cube.position.x += moveX
                 this.cube.position.z += moveZ
@@ -128,10 +127,8 @@ export class Block {
                 this.body.position.z += moveZ
 
             }
-        }, 1)
+        }, 0)
 
-
-        return this.cube.position
     }
     _directionOffset(directionOffset) {
         if (directionOffset == 0) {

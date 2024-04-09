@@ -8,6 +8,7 @@ export class MapLevel {
     groundSize = WIDTH;
     loadTexture = new THREE.TextureLoader()
     texturemap = this.loadTexture.load('publish/image/square-outline-textured.png')
+    bumpturemap = this.loadTexture.load("publish/image/13105-bump.jpg")
     texturetarget = this.loadTexture.load('publish/image/x.png')
     grounds = []
     blocks = []
@@ -16,6 +17,7 @@ export class MapLevel {
     geometry = new THREE.BoxGeometry(this.groundSize, this.groundheight, this.groundSize);
     material = new THREE.MeshPhysicalMaterial({
         map: this.texturemap,
+        bumpMap: this.bumpturemap,
         flatShading: true,
         color: 0xd9dcde,
         clearcoat: 1,
@@ -25,23 +27,29 @@ export class MapLevel {
     edges = new THREE.EdgesGeometry(this.geometry);
     line = new THREE.LineSegments(this.edges, new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 4 }));
     lastCollisionTime
+    isavailabel = { [W]: true, [A]: true, [S]: true, [D]: true }
+    currentAction = W
+    iswin = false
+    isloss = false
     constructor(scene, physicsWorld, character) {
         this.scene = scene
         this.physicsWorld = physicsWorld
         this.character = character
+
     }
     setCharacter(character) {
         this.character = character
     }
-    async initMap(level) {
+    async initMap(level, calback) {
         await this.load(level).then(((structure) => {
             this.structure = structure
             for (var i = 0; i < structure.length; i++) {
                 for (var j = 0; j < structure[i].length; j++) {
                     if (structure[i][j] != WALL) {
-                        if (structure[i][j] == TARGET) {
+                        if (structure[i][j] == TARGET || structure[i][j] == TARGET_FILLED) {
                             this.material = new THREE.MeshPhysicalMaterial({
                                 map: this.texturetarget,
+                                bumpMap: this.bumpturemap,
                                 flatShading: true,
                                 color: 0xcaafaf,
                                 clearcoat: 1,
@@ -53,6 +61,7 @@ export class MapLevel {
 
                             this.material = new THREE.MeshPhysicalMaterial({
                                 map: this.texturemap,
+                                bumpMap: this.bumpturemap,
                                 flatShading: true,
                                 color: 0xd9dcde,
                                 clearcoat: 1,
@@ -77,7 +86,26 @@ export class MapLevel {
                 }
             }
         }))
-        // return this.blocks
+        document.addEventListener('keydown', (event) => {
+            if (this.character.ismover == false) {
+                if (event.shiftKey && this.character) {
+                    this.character.switchRunToggle();
+                } else {
+
+                    if (this.isavailabel[event.key.toLowerCase()]) {
+                        this.character.keysPressed[event.key.toLowerCase()] = true;
+                        this.currentAction = event.key.toLowerCase()
+                    }
+                }
+
+            }
+        }, false);
+        document.addEventListener('keyup', (event) => {
+            this.character.ismover = false
+            this.character.keysPressed[event.key.toLowerCase()] = false;
+        }, false);
+
+        calback(this.position_player)
     }
     createGround(x, y) {
 
@@ -103,76 +131,137 @@ export class MapLevel {
         this.physicsWorld.addBody(body);
         return [ground, body]
     }
-    checkMove(block) {
-        let direction = [0, 0]
-        if (this.character.directionOffset == 0) {
-            direction = [0, -1]
-        } else if (this.character.directionOffset == Math.PI) {
-            direction = [0, 1]
-        } else if (this.character.directionOffset == Math.PI / 2) {
-            direction = [-1, 0]
-        } else if (this.character.directionOffset == - Math.PI / 2) {
-            direction = [1, 0]
-        }
-        var x = Math.round(direction[0] + block.cube.position.x / WIDTH)
-        var y = Math.round(direction[1] + block.cube.position.z / WIDTH)
+    checkMoveBlock(obj) {
+        this.character._directionOffset(this.character.directionOffset)
+
+        var x = Math.round(this.character.walkDirection.x + obj.position.x / WIDTH)
+        var y = Math.round(this.character.walkDirection.z + obj.position.z / WIDTH)
         if (x > 0 && y > 0 && x < this.structure.length && y < this.structure[0].length) {
-            if (this.structure[x][y] == BOX) {
+            if (this.structure[x][y] == BOX || this.structure[x][y] == TARGET_FILLED) {
+                return 0
+            }
+
+        }
+        return 1
+    }
+    checkMoveCharacter() {
+
+        this.character._directionOffset(this.character.directionOffset)
+
+        var x = Math.round(this.character.walkDirection.x + this.character.model.position.x / WIDTH)
+        var y = Math.round(this.character.walkDirection.z + this.character.model.position.z / WIDTH)
+        if (x > 0 && y > 0 && x < this.structure.length && y < this.structure[0].length) {
+            if (this.structure[x][y] == AIR) {
+                return 1
+            }
+        }
+        return 0
+    }
+    checkWin() {
+        for (let i = 0; i < this.blocks.length; i++) {
+
+            if (this.blocks[i].isavailabel == 1) {
                 return false
             }
         }
-
-
         return true
-
-
     }
     update(mixerUpdateDelta) {
-        for (let i = 0; i < this.blocks.length; i++) {
-            this.blocks[i].update()
-        }
-        for (let i = 0; i < this.grounds.length; i++) {
-            this.grounds[i].ground.position.copy(this.grounds[i].body.position)
-            this.grounds[i].ground.quaternion.copy(this.grounds[i].body.quaternion)
-        }
-
-
-        var collidingBlock = null;
-        var isCollidingWithBlock = this.blocks.some((block) => {
-
-            var distance = this.character.model.position.distanceTo(block.cube.position);
-            if (distance < WIDTH - 1) {
-                collidingBlock = block
-                return true
+        // this.isloss = true
+        if (this.iswin == false) {
+            this.mixerUpdateDelta = mixerUpdateDelta
+            for (let i = 0; i < this.blocks.length; i++) {
+                this.blocks[i].update()
             }
-            return false
-        }
-        );
-
-        if (isCollidingWithBlock && (this.checkMove(collidingBlock))) {
-            if (this.character.ismover == true) {
-                this.character.togglePush = true
-                // console.log(Math.round(collidingBlock.cube.position.x / WIDTH), Math.round(collidingBlock.cube.position.z / WIDTH));
-                this.structure[Math.round(collidingBlock.cube.position.x / WIDTH)][Math.round(collidingBlock.cube.position.z / WIDTH)] = AIR
-                collidingBlock.move(mixerUpdateDelta, this.character.currentAction, this.character.directionOffset)
-                // this.structure[Math.round(position.x / WIDTH)][Math.round(position.z / WIDTH)] = BOX
-
-
-                // collidingBlock.setisavailabel(0)
-                this.lastCollisionTime = Date.now();
-            }
-        }
-        else {
-
-            var currentCollisionTime = Date.now()
-            if (this.lastCollisionTime !== null && (currentCollisionTime - this.lastCollisionTime) >= 300) {
-                this.character.togglePush = false;
-                this.lastCollisionTime = null;
+            for (let i = 0; i < this.grounds.length; i++) {
+                this.grounds[i].ground.position.copy(this.grounds[i].body.position)
+                this.grounds[i].ground.quaternion.copy(this.grounds[i].body.quaternion)
             }
 
+            var collidingBlock = null;
+            var checkBlock = null
 
+            var isCollidingWithBlock = this.blocks.some((block) => {
+                var distance = this.character.model.position.distanceTo(block.cube.position);
+                if (distance < WIDTH + 5) {
+                    // console.log(distance);
+                    checkBlock = block
+                }
+                if (distance < WIDTH - 1 && block.ismover == false) {
+                    collidingBlock = block
+                    return true
+                }
+                // return false
+            }
+            );
+
+
+            if (checkBlock) {
+
+                if (this.checkMoveCharacter() == 1) {
+                    // console.log(2134);
+                    this.isavailabel = { [W]: true, [A]: true, [S]: true, [D]: true }
+                }
+                else if (this.checkMoveBlock(checkBlock.cube) == 0) {
+
+                    this.isavailabel[this.currentAction] = false
+                }
+                // else {
+                //     this.character.isavailabel = true
+                // }
+
+            }
+            // console.log(isCollidingWithBlock)
+            if (isCollidingWithBlock && this.checkMoveBlock(collidingBlock.cube) == 1) {
+
+                if (this.character.ismover == true && this.iswin == false) {
+                    this.character.togglePush = true
+                    if (this.structure[Math.round(collidingBlock.cube.position.x / WIDTH)][Math.round(collidingBlock.cube.position.z / WIDTH)] == TARGET ||
+                        this.structure[Math.round(collidingBlock.cube.position.x / WIDTH)][Math.round(collidingBlock.cube.position.z / WIDTH)] == TARGET_FILLED)
+                        this.structure[Math.round(collidingBlock.cube.position.x / WIDTH)][Math.round(collidingBlock.cube.position.z / WIDTH)] = TARGET
+                    else
+                        this.structure[Math.round(collidingBlock.cube.position.x / WIDTH)][Math.round(collidingBlock.cube.position.z / WIDTH)] = AIR
+                    collidingBlock.move(mixerUpdateDelta, this.character.currentAction, this.character.directionOffset,
+                        (position) => {
+                            if (position) {
+                                collidingBlock.body.position.x = Math.round(position.x)
+                                collidingBlock.body.position.z = Math.round(position.z)
+                                if (this.structure[Math.round(position.x / WIDTH)][Math.round(position.z / WIDTH)] == TARGET) {
+
+                                    this.structure[Math.round(position.x / WIDTH)][Math.round(position.z / WIDTH)] = TARGET_FILLED
+                                    if (collidingBlock.isavailabel == 1) {
+                                        collidingBlock.setisavailabel(0)
+                                        collidingBlock.needsUpdate = true
+                                    }
+                                }
+                                else {
+                                    if (collidingBlock.isavailabel == 0) {
+                                        collidingBlock.setisavailabel(1)
+                                        collidingBlock.needsUpdate = true
+                                    }
+
+                                    this.structure[Math.round(position.x / WIDTH)][Math.round(position.z / WIDTH)] = BOX
+                                }
+                            }
+
+                        }
+                    )
+                    this.lastCollisionTime = Date.now();
+                }
+            }
+            else {
+                var currentCollisionTime = Date.now()
+                if (this.lastCollisionTime !== null && (currentCollisionTime - this.lastCollisionTime) >= 350) {
+                    this.character.togglePush = false;
+                    this.lastCollisionTime = null;
+                }
+            }
+            this.character.update(mixerUpdateDelta);
+            if (this.checkWin()) {
+                this.iswin = true
+                this.isavailabel = { [W]: false, [A]: false, [S]: false, [D]: false }
+            }
         }
-
     }
 
     async load(level) {
@@ -208,4 +297,8 @@ export class MapLevel {
         return structure;
 
     }
+    getKey() {
+
+    }
+
 }
