@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
-
+import TWEEN from '@tweenjs/tween.js'
 
 export class Character {
     model
@@ -20,7 +20,7 @@ export class Character {
     walkDirection = new THREE.Vector3()
     // trục quay
     rotateAngle = new THREE.Vector3(0, 1, 0)
-    rotateQuarternion = new THREE.Quaternion()
+    rotateQuarternion = new THREE.Quaternion(0, 0, 0, 0)
     cameraTarget = new THREE.Vector3()
 
     // constants
@@ -30,7 +30,7 @@ export class Character {
     position = new THREE.Vector3(0, 0, 0)
     mover
     ismover = false
-
+    directionOffset = 0
     constructor(scene, camera, physicsWorld, position, currentAction, fadeDuration = 0.2) {
         this.currentAction = currentAction
         this.fadeDuration = fadeDuration
@@ -67,8 +67,6 @@ export class Character {
                     this.model = gltf;
                     this.model.scale.setScalar(0.002);
                     this.scene.add(this.model);
-                    this.model.rotation.z = Math.PI
-                    this.model.rotation.x = Math.PI
                     this.model.position.copy(this.position)
                     // set tạo bóng cho tất cả các mesh của this.model
                     let _this = this
@@ -89,8 +87,9 @@ export class Character {
                             var shape = new CANNON.Box(halfExtents);
                             _this.characterPhyMat = new CANNON.Material()
                             _this.body = new CANNON.Body({
-                                mass: 1000,
+                                mass: 1,
                                 shape: shape,
+                                type: CANNON.Body.DYNAMIC,
                                 material: _this.characterPhyMat,
                                 collisionFilterGroup: GROUP2,
                                 collisionFilterMask: GROUP1 | GROUP4
@@ -111,9 +110,9 @@ export class Character {
                     });
 
                     // khởi tạo khung xương cho this.model
-                    var skeleton = new THREE.SkeletonHelper(this.model);
-                    skeleton.visible = true;
-                    this.scene.add(skeleton);
+                    this.skeleton = new THREE.SkeletonHelper(this.model);
+                    this.skeleton.visible = false;
+                    this.scene.add(this.skeleton);
 
 
                     // Thêm animation cho this.model
@@ -128,8 +127,6 @@ export class Character {
                         a.name = this.pathAnimations[i]
                         this.animationsMap.set(a.name, this.mixer.clipAction(a))
                     })
-
-
 
                     this.animationsMap.forEach((value, key) => {
                         if (key == this.currentAction) {
@@ -168,15 +165,6 @@ export class Character {
 
         if (this.currentAction == 'Run' || this.currentAction == 'Push') {
 
-            // bù góc chuyển động chéo
-            this.directionOffset = this._directionOffset(this.keysPressed)
-            // quay mô hình
-            this.rotateQuarternion.setFromAxisAngle(this.rotateAngle, this.directionOffset + Math.PI)
-            // thông số 2 là độ mượt khi quay theo từng step 
-            this.model.quaternion.rotateTowards(this.rotateQuarternion, 3)
-            this.body.quaternion.copy(this.model.quaternion)
-
-
             // run/walk velocity
             const velocity = this.currentAction == 'Run' ? this.runVelocity : this.walkVelocity
 
@@ -190,7 +178,7 @@ export class Character {
             var countStep = 0
             this.ismover = false
             this.mover = setInterval(() => {
-                if (Math.round(this.model.position.x) % WIDTH == 0 && Math.round(this.model.position.z) % WIDTH == 0 && this.ismover && countStep > 10) {
+                if (Math.round(this.model.position.x) % WIDTH == 0 && Math.round(this.model.position.z) % WIDTH == 0 && this.ismover && countStep > 20) {
                     this.model.position.x = Math.round(this.model.position.x)
                     this.model.position.z = Math.round(this.model.position.z)
                     this.ismover = false
@@ -198,21 +186,26 @@ export class Character {
                     clearInterval(this.mover);
                 }
                 else {
+
                     countStep += 1
                     this.ismover = true
                     this.model.position.x += moveX
                     this.model.position.z += moveZ
-                    this.body.position.x += moveX
-                    this.body.position.z += moveZ
+                    this.body.position.x = this.model.position.x
+                    this.body.position.z = this.model.position.z
 
                 }
-            }, 1)
+            }, 0)
 
         }
 
+
+
     }
-    update(delta) {
-        const directionPressed = DIRECTIONS.some(key => this.keysPressed[key] == true)
+    update(delta, isavailabel) {
+        const directionPressed = DIRECTIONS.find(key => {
+            return this.keysPressed[key];
+        });
         var play = '';
         if (directionPressed && this.togglePush) {
             play = 'Push'
@@ -234,8 +227,18 @@ export class Character {
 
         }
 
-        if (!this.ismover)
-            this.move(delta)
+        // bù góc chuyển động chéo
+        this._directionOffset(this.keysPressed)
+        // quay mô hình
+        this.rotateQuarternion.setFromAxisAngle(this.rotateAngle, this.directionOffset + Math.PI)
+        // thông số 2 là độ mượt khi quay theo từng step 
+        this.model.quaternion.rotateTowards(this.rotateQuarternion, 3)
+        this.body.quaternion.copy(this.model.quaternion)
+
+        if (!this.ismover && isavailabel[directionPressed])
+            setTimeout(() => {
+                this.move(delta)
+            }, 10)
         // update physical
         this.mixer.update(delta)
         this.updatePhysical()
@@ -249,7 +252,6 @@ export class Character {
 
     }
     updateCameraTarget() {
-
         this.cameraAngle = THREE.MathUtils.lerp(this.cameraAngle, 0, 0.01);
         this.camera.position.setFromSphericalCoords(100, 0.7, this.cameraAngle);
         this.camera.position.add(this.model.position);
@@ -257,40 +259,21 @@ export class Character {
     }
 
     _directionOffset() {
-        var directionOffset = 0 // w
+
         if (this.keysPressed[W]) {
+            this.directionOffset = 0 // w
             this.walkDirection.set(0, 0, -1)
         } else if (this.keysPressed[S]) {
             this.walkDirection.set(0, 0, 1)
-            directionOffset = Math.PI // s
+            this.directionOffset = Math.PI // s
         } else if (this.keysPressed[A]) {
             this.walkDirection.set(-1, 0, 0)
-            directionOffset = Math.PI / 2 // a
+            this.directionOffset = Math.PI / 2 // a
         } else if (this.keysPressed[D]) {
             this.walkDirection.set(1, 0, 0)
-            directionOffset = - Math.PI / 2 // d
+            this.directionOffset = - Math.PI / 2 // d
         }
 
-        // if (this.keysPressed[W]) {
-        //     if (this.keysPressed[A]) {
-        //         directionOffset = Math.PI / 4 // w+a
-        //     } else if (this.keysPressed[D]) {
-        //         directionOffset = - Math.PI / 4 // w+d
-        //     }
-        // } else if (this.keysPressed[S]) {
-        //     if (this.keysPressed[A]) {
-        //         directionOffset = Math.PI / 4 + Math.PI / 2 // s+a
-        //     } else if (this.keysPressed[D]) {
-        //         directionOffset = -Math.PI / 4 - Math.PI / 2 // s+d
-        //     } else {
-        //         directionOffset = Math.PI // s
-        //     }
-        // } else if (this.keysPressed[A]) {
-        //     directionOffset = Math.PI / 2 // a
-        // } else if (this.keysPressed[D]) {
-        //     directionOffset = - Math.PI / 2 // d
-        // }
 
-        return directionOffset
     }
 }

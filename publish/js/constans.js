@@ -6,6 +6,7 @@ const BOX = 3
 const TARGET = 4
 const TARGET_FILLED = 5
 const WIDTH = 10
+const RADIUS = 200
 //direction
 const W = 'w'
 const A = 'a'
@@ -14,7 +15,8 @@ const D = 'd'
 const SHIFT = 'shift'
 const DIRECTIONS = [W, A, S, D]
 
-
+// time
+const TIMEOUT = 120
 //Group
 const GROUP1 = 1;
 const GROUP2 = 2;

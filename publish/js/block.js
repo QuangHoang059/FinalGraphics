@@ -9,7 +9,7 @@ export class Block {
     physicsWorld
     body
     runVelocity = 20
-    walkVelocity = 25
+    walkVelocity = 13
     ismover = false
     // temporary data
     walkDirection = new THREE.Vector3(0, 0, 1)
@@ -18,12 +18,16 @@ export class Block {
     rotateQuarternion = new THREE.Quaternion()
     cameraTarget = new THREE.Vector3()
     mover
-    constructor(scene, physicsWorld, isavailabel, positon = new THREE.Vector3(0, 0, 0)) {
+    index
+    constructor(scene, physicsWorld, isTagert, positon = new THREE.Vector3(0, 0, 0)) {
         this.positon = positon
+        var x = Math.round(positon.x / WIDTH)
+        var y = Math.round(positon.z / WIDTH)
+        this.index = { x, y }
         this.scene = scene
         this.physicsWorld = physicsWorld
 
-        if (isavailabel)
+        if (isTagert)
             this.texture = this.loader.load('./publish/image/crate_color8.tga');
         else
             this.texture = this.loader.load('./publish/image/crate_grey8.tga');
@@ -35,12 +39,12 @@ export class Block {
 
         });
 
-        this.isavailabel = isavailabel
+        this.isTagert = isTagert
         this.load()
     }
-    setisavailabel(isavailabel) {
-        this.isavailabel = isavailabel
-        if (isavailabel)
+    setisTagert(isTagert) {
+        this.isTagert = isTagert
+        if (isTagert)
             this.texture = this.loader.load('./publish/image/crate_color8.tga');
         else
             this.texture = this.loader.load('./publish/image/crate_grey8.tga');
@@ -71,6 +75,7 @@ export class Block {
         this.body = new CANNON.Body({
             mass: 1,
             shape: shape,
+            type: CANNON.Body.DYNAMIC,
             material: new CANNON.Material(),
             collisionFilterGroup: GROUP3,
             collisionFilterMask: GROUP1 | GROUP4
