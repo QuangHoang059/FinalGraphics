@@ -176,7 +176,6 @@ export class Character {
             if (this.mover) { clearInterval(this.mover); }
 
             var countStep = 0
-            this.ismover = false
             this.mover = setInterval(() => {
                 if (Math.round(this.model.position.x) % WIDTH == 0 && Math.round(this.model.position.z) % WIDTH == 0 && this.ismover && countStep > 20) {
                     this.model.position.x = Math.round(this.model.position.x)
@@ -195,14 +194,29 @@ export class Character {
                     this.body.position.z = this.model.position.z
 
                 }
-            }, 0)
+            }, 1)
 
         }
 
 
 
     }
-    update(delta, isavailabel) {
+    moveCharacter(delta, directionPressed, isavailabel) {
+
+        // bù góc chuyển động chéo
+        this._directionOffset(this.keysPressed)
+        // quay mô hình
+        this.rotateQuarternion.setFromAxisAngle(this.rotateAngle, this.directionOffset + Math.PI)
+        // thông số 2 là độ mượt khi quay theo từng step 
+        this.model.quaternion.rotateTowards(this.rotateQuarternion, 3)
+        this.body.quaternion.copy(this.model.quaternion)
+
+        if (!this.ismover && isavailabel[directionPressed])
+            setTimeout(() => {
+                this.move(delta)
+            }, 10)
+    }
+    update(delta) {
         const directionPressed = DIRECTIONS.find(key => {
             return this.keysPressed[key];
         });
@@ -226,19 +240,6 @@ export class Character {
             this.currentAction = play
 
         }
-
-        // bù góc chuyển động chéo
-        this._directionOffset(this.keysPressed)
-        // quay mô hình
-        this.rotateQuarternion.setFromAxisAngle(this.rotateAngle, this.directionOffset + Math.PI)
-        // thông số 2 là độ mượt khi quay theo từng step 
-        this.model.quaternion.rotateTowards(this.rotateQuarternion, 3)
-        this.body.quaternion.copy(this.model.quaternion)
-
-        if (!this.ismover && isavailabel[directionPressed])
-            setTimeout(() => {
-                this.move(delta)
-            }, 10)
         // update physical
         this.mixer.update(delta)
         this.updatePhysical()

@@ -41,6 +41,7 @@ export class MapLevel {
     starttime
     isvalid = true
     isload = false
+    ismovebox = false
     constructor(scene, camera, physicsWorld) {
         this.scene = scene
         this.physicsWorld = physicsWorld
@@ -57,7 +58,7 @@ export class MapLevel {
                     this.isload = true
                 }, 50)
             }).then(() => {
-
+                this.createEvent()
             }
             )
         })
@@ -108,7 +109,7 @@ export class MapLevel {
             }
 
         }))
-        this.createEvent()
+
         calback(this.position_player)
         this.starttime = Date.now()
     }
@@ -123,11 +124,14 @@ export class MapLevel {
                     if (this.isavailabel[key] && key in KEYACTION) {
                         KEYACTION[key].classList.add('action')
                         this.character.keysPressed[key] = true;
+
                         this.currentAction = key
                     }
                 }
             }
+
         }, false);
+
         document.addEventListener('keyup', (event) => {
             let key = event.key.toLowerCase()
             if (key in KEYACTION) {
@@ -193,45 +197,6 @@ export class MapLevel {
         this.physicsWorld.addBody(body);
         return [ground, body]
     }
-    checkMoveBlock(obj, walkDirection) {
-        var x = walkDirection.x + Math.round(obj.cube.position.x / WIDTH)
-        var y = walkDirection.z + Math.round(obj.cube.position.z / WIDTH)
-        if (x >= 0 && x < this.structure.length && y >= 0 && y < this.structure[x].length) {
-            if (this.structure[x][y] == BOX || this.structure[x][y] == TARGET_FILLED) {
-                return 0
-            }
-        }
-        return 1
-    }
-    checkMovecollidingBlock() {
-        this.character._directionOffset()
-        var x = this.character.walkDirection.x + Math.round(this.character.model.position.x / WIDTH)
-        var y = this.character.walkDirection.z + Math.round(this.character.model.position.z / WIDTH)
-        // console.log(x, y, this.structure.length, this.structure[0].length);
-        if (x >= 0 && x < this.structure.length && y >= 0 && y < this.structure[x].length) {
-            if (this.structure[x][y] == BOX || this.structure[x][y] == TARGET_FILLED) {
-                return this.blocks.find((block) => {
-                    if (x == block.index.x && y == block.index.y) {
-                        var isTrue = this.checkMoveBlock(block, this.character.walkDirection)
-                        if (isTrue)
-                            return block
-                    }
-
-                })
-            }
-        }
-        return 0
-    }
-    checkMoveCharacter() {
-        var x = this.character.walkDirection.x + Math.round(this.character.model.position.x / WIDTH)
-        var y = this.character.walkDirection.z + Math.round(this.character.model.position.z / WIDTH)
-        if (x >= 0 && x < this.structure.length && y >= 0 && y < this.structure[x].length) {
-            if (this.structure[x][y] == AIR || this.structure[x][y] == TARGET || this.structure[x][y] == WALL) {
-                return 1
-            }
-        }
-        return 0
-    }
     checkWin() {
         for (let i = 0; i < this.blocks.length; i++) {
             if (this.blocks[i].isTagert == 1) {
@@ -272,6 +237,46 @@ export class MapLevel {
         }
 
     }
+    checkMoveBlock(obj, walkDirection) {
+        var x = walkDirection.x + Math.round(obj.cube.position.x / WIDTH)
+        var y = walkDirection.z + Math.round(obj.cube.position.z / WIDTH)
+        if (x >= 0 && x < this.structure.length && y >= 0 && y < this.structure[x].length) {
+            if (this.structure[x][y] == BOX || this.structure[x][y] == TARGET_FILLED) {
+                return 0
+            }
+        }
+        return 1
+    }
+    checkMovecollidingBlock() {
+        this.character._directionOffset()
+        var x = this.character.walkDirection.x + Math.round(this.character.model.position.x / WIDTH)
+        var y = this.character.walkDirection.z + Math.round(this.character.model.position.z / WIDTH)
+        if (x >= 0 && x < this.structure.length && y >= 0 && y < this.structure[x].length) {
+            if (this.structure[x][y] == BOX || this.structure[x][y] == TARGET_FILLED) {
+                return this.blocks.find((block) => {
+                    if (x == block.index.x && y == block.index.y) {
+                        var isTrue = this.checkMoveBlock(block, this.character.walkDirection)
+                        if (isTrue)
+                            return block
+                    }
+
+                })
+            }
+        }
+        return 0
+    }
+    checkMoveCharacter() {
+        var x = this.character.walkDirection.x + Math.round(this.character.model.position.x / WIDTH)
+        var y = this.character.walkDirection.z + Math.round(this.character.model.position.z / WIDTH)
+        if (x >= 0 && x < this.structure.length && y >= 0 && y < this.structure[x].length) {
+            if (this.structure[x][y] == AIR || this.structure[x][y] == TARGET || this.structure[x][y] == WALL) {
+                return 1
+            }
+        }
+        return 0
+    }
+
+
     update(mixerUpdateDelta) {
         if (this.currentTime < TIMEOUT) {
             this.currentTime = Math.round((Date.now() - this.starttime) / 1000)
@@ -289,69 +294,76 @@ export class MapLevel {
             const directionPressed = DIRECTIONS.find(key => {
                 return this.character.keysPressed[key];
             });
-            if (directionPressed) {
-
+            if (directionPressed && this.ismovebox == false && this.character.ismover == false) {
+                // console.log(234);
                 this.mixerUpdateDelta = mixerUpdateDelta
                 var collidingBlock = null;
 
                 collidingBlock = this.checkMovecollidingBlock()
 
                 if (this.checkMoveCharacter() && this.isloss == false) {
-
                     this.isavailabel = { [W]: true, [A]: true, [S]: true, [D]: true }
                 }
                 else if (!collidingBlock) {
-
                     this.isavailabel[this.currentAction] = false
                 }
-
-
                 if (collidingBlock) {
-                    if (this.character.ismover == false) {
-                        this.character.togglePush = true
-                        if (this.structure[Math.round(collidingBlock.cube.position.x / WIDTH)][Math.round(collidingBlock.cube.position.z / WIDTH)] == TARGET ||
-                            this.structure[Math.round(collidingBlock.cube.position.x / WIDTH)][Math.round(collidingBlock.cube.position.z / WIDTH)] == TARGET_FILLED)
-                            this.structure[Math.round(collidingBlock.cube.position.x / WIDTH)][Math.round(collidingBlock.cube.position.z / WIDTH)] = TARGET
-                        else
-                            this.structure[Math.round(collidingBlock.cube.position.x / WIDTH)][Math.round(collidingBlock.cube.position.z / WIDTH)] = AIR
-                        collidingBlock.move(mixerUpdateDelta, this.character.currentAction, this.character.directionOffset,
-                            (position) => {
-                                if (position) {
-                                    collidingBlock.body.position.x = Math.round(position.x)
-                                    collidingBlock.body.position.z = Math.round(position.z)
-                                    collidingBlock.index = { x: Math.round(position.x / WIDTH), y: Math.round(position.z / WIDTH) }
-                                    if (this.structure[Math.round(position.x / WIDTH)][Math.round(position.z / WIDTH)] == TARGET) {
-                                        this.structure[Math.round(position.x / WIDTH)][Math.round(position.z / WIDTH)] = TARGET_FILLED
-                                        if (collidingBlock.isTagert == 1) {
-                                            collidingBlock.setisTagert(0)
-                                            collidingBlock.needsUpdate = true
-                                        }
-                                    }
-                                    else {
-                                        if (collidingBlock.isTagert == 0) {
-                                            collidingBlock.setisTagert(1)
-                                            collidingBlock.needsUpdate = true
-                                        }
-                                        if (this.structure[Math.round(position.x / WIDTH)][Math.round(position.z / WIDTH)] != WALL)
-                                            this.structure[Math.round(position.x / WIDTH)][Math.round(position.z / WIDTH)] = BOX
-                                    }
-                                    this.checkWin()
-                                }
-                                this.checkLoss(collidingBlock.cube)
-                            })
+                    // if (this.character.ismover == false)
 
-                        this.lastCollisionTime = Date.now();
-                    }
+                    this.ismovebox = true
+                    this.character.togglePush = true
+                    if (this.structure[Math.round(collidingBlock.cube.position.x / WIDTH)][Math.round(collidingBlock.cube.position.z / WIDTH)] == TARGET ||
+                        this.structure[Math.round(collidingBlock.cube.position.x / WIDTH)][Math.round(collidingBlock.cube.position.z / WIDTH)] == TARGET_FILLED)
+                        this.structure[Math.round(collidingBlock.cube.position.x / WIDTH)][Math.round(collidingBlock.cube.position.z / WIDTH)] = TARGET
+                    else
+                        this.structure[Math.round(collidingBlock.cube.position.x / WIDTH)][Math.round(collidingBlock.cube.position.z / WIDTH)] = AIR
+                    collidingBlock.move(mixerUpdateDelta, this.character.currentAction, this.character.directionOffset,
+                        (position) => {
+
+                            if (position) {
+                                collidingBlock.body.position.x = Math.round(position.x)
+                                collidingBlock.body.position.z = Math.round(position.z)
+                                collidingBlock.index = { x: Math.round(position.x / WIDTH), y: Math.round(position.z / WIDTH) }
+                                if (this.structure[Math.round(position.x / WIDTH)][Math.round(position.z / WIDTH)] == TARGET) {
+                                    this.structure[Math.round(position.x / WIDTH)][Math.round(position.z / WIDTH)] = TARGET_FILLED
+                                    if (collidingBlock.isTagert == 1) {
+                                        collidingBlock.setisTagert(0)
+                                        collidingBlock.needsUpdate = true
+                                    }
+                                }
+                                else {
+                                    if (collidingBlock.isTagert == 0) {
+                                        collidingBlock.setisTagert(1)
+                                        collidingBlock.needsUpdate = true
+                                    }
+                                    if (this.structure[Math.round(position.x / WIDTH)][Math.round(position.z / WIDTH)] != WALL)
+                                        this.structure[Math.round(position.x / WIDTH)][Math.round(position.z / WIDTH)] = BOX
+                                }
+                                this.checkWin()
+
+                            }
+                            this.checkLoss(collidingBlock.cube)
+                            this.ismovebox = false
+
+
+                        })
+
+                    this.lastCollisionTime = Date.now();
+
+
                 }
                 else {
                     var currentCollisionTime = Date.now()
-                    if (this.lastCollisionTime !== null && (currentCollisionTime - this.lastCollisionTime) >= 300) {
+                    if (this.lastCollisionTime !== null && (currentCollisionTime - this.lastCollisionTime) >= 350) {
                         this.character.togglePush = false;
                         this.lastCollisionTime = null;
                     }
+
                 }
+                this.character.moveCharacter(mixerUpdateDelta, directionPressed, this.isavailabel)
             }
         }
+
         this.grounds.forEach((ground) => {
             ground.ground.position.copy(ground.body.position)
             ground.ground.quaternion.copy(ground.body.quaternion)
@@ -360,7 +372,7 @@ export class MapLevel {
         for (let i = 0; i < this.blocks.length; i++) {
             this.blocks[i].update()
         }
-        this.character.update(mixerUpdateDelta, this.isavailabel);
+        this.character.update(mixerUpdateDelta);
 
     }
 

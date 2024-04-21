@@ -109,8 +109,6 @@ export class Block {
 
         if (this.mover) { clearInterval(this.mover); }
 
-
-        this.ismover = false
         var countStep = 0
         this.mover = setInterval(() => {
             if (Math.round(this.cube.position.x) % WIDTH == 0 && Math.round(this.cube.position.z) % WIDTH == 0 && this.ismover && countStep > 10) {
@@ -132,7 +130,7 @@ export class Block {
                 this.body.position.z += moveZ
 
             }
-        }, 0)
+        }, 1)
 
     }
     _directionOffset(directionOffset) {

@@ -25,24 +25,27 @@ import CannonDebugger from 'cannon-es-debugger'
 let cannonDebugger
 let physicsWorld
 let scene, renderer, camera, stats, controls, composer
-let character, clock, maplevel, mixerUpdateDelta,
+let clock, maplevel, mixerUpdateDelta,
     buttonreset, isstop = false, sun, dirLight, groupChangeMap
 let isPerspectivecamera = 1
 let settings;
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
-const loadreset = new FBXLoader()
+const listener = new THREE.AudioListener();
+const audioLoader = new THREE.AudioLoader();
+const audioWin = new THREE.Audio(listener);
+const audioLoss = new THREE.Audio(listener);
+const audioGame = new THREE.Audio(listener);
 // tham số để thể hiện tưng hành động theo  các bước (gióng slow motion)
-
+var isAnimationEnd = false
 let level = 1
 
-init();
 function init() {
     initGraphis()
     initOBJ(level)
     animate();
 }
-
+init();
 function initGraphis() {
     scene = new THREE.Scene();
     const loadTexture = new THREE.TextureLoader();
@@ -58,6 +61,19 @@ function initGraphis() {
     camera.position.set(1, 2, - 3)
     camera.lookAt(0, 1, 0);
     camera.updateProjectionMatrix();
+    // init audio
+    camera.add(listener);
+    audioLoader.load('publish/audio/TB7L64W-winning.mp3', function (buffer) {
+        audioWin.setBuffer(buffer);
+        audioWin.setVolume(0.7);
+
+
+    });
+    audioLoader.load('publish/audio/mixkit-8-bit-lose-2031.wav', function (buffer) {
+        audioLoss.setBuffer(buffer);
+        audioLoss.setVolume(0.7);
+
+    });
     //init renderer
     renderer = new THREE.WebGLRenderer({
         canvas: document.querySelector('#bg'),
@@ -114,11 +130,6 @@ function initGraphis() {
     physicsWorld.defaultContactMaterial.contactEquationRelaxation = 5;
 
     window.addEventListener('resize', () => {
-
-        // camera.aspect = window.innerWidth / window.innerHeight;
-        // camera.updateProjectionMatrix();
-        // renderer.setSize(window.innerWidth, window.innerHeight);
-
         // update display width and height
         var width = window.innerWidth
         var height = window.innerHeight
@@ -136,17 +147,12 @@ function initGraphis() {
 }
 
 function initOBJ(level) {
-
-
     // thêm tọa độ
     const axisHelper = new THREE.AxesHelper(10);
-    scene.add(axisHelper);
+    // scene.add(axisHelper);
 
     // create sun
     createSun()
-
-    // create model
-
 
     // crate map
     maplevel = new MapLevel(scene, camera, physicsWorld)
@@ -245,6 +251,7 @@ function createText(text, color = 0xffffff) {
     });
 }
 function createResetMap() {
+    const loadreset = new FBXLoader()
     loadreset.load('publish/models/uploads_files_2691895_button.fbx', (model) => {
         model.scale.setScalar(0.09)
         model.rotation.x = Math.PI / 2
@@ -349,6 +356,8 @@ var latertime = Date.now();
 function clearScene() {
     scene.clear()
     //reset parameters
+    audioLoss.stop()
+    audioWin.stop()
     isstop = false
     isPerspectivecamera = 1
     physicsWorld.gravity.set(0, -9.8, 0);
@@ -379,8 +388,7 @@ function onPointerMove(event) {
 
         if (res && res.object) {
             var currenttime = Date.now()
-            if (currenttime - latertime > 1200) {
-
+            if (currenttime - latertime > 1000 && isAnimationEnd == false) {
                 if (res.object.name == 'arrowrigh') {
                     level += 1
                     if (level > 18) level = 18
@@ -402,15 +410,16 @@ function onPointerMove(event) {
                     latertime = currenttime
                 }
             }
-
-
         }
-
     }
 
 }
 window.addEventListener('pointerdown', onPointerMove)
-
+document.addEventListener('keydown', (event) => {
+    if (event.key == 'v' && maplevel.isloss == false) {
+        isPerspectivecamera = !isPerspectivecamera
+    }
+})
 function animationMap(mixerUpdateDelta) {
     if (groupChangeMap) {
         var changemap = groupChangeMap.getObjectByName('boxmap')
@@ -422,6 +431,7 @@ function animationMap(mixerUpdateDelta) {
     }
 
 }
+
 //animation to end game
 function animationEndGame() {
     isPerspectivecamera = 0
@@ -433,10 +443,11 @@ function animationEndGame() {
         .easing(TWEEN.Easing.Quadratic.InOut)
         .onStart(() => {
             controls.enabled = false;
+            isAnimationEnd = true
         })
         .onComplete(() => {
             controls.enabled = true;
-
+            isAnimationEnd = false
         })
     const changeMapMoveTween = new TWEEN.Tween(groupChangeMap.position)
         .to(new THREE.Vector3(50, 100, 130), 2000)
@@ -486,25 +497,29 @@ function animate() {
     // Lấy thời gian đã trôi qua kể từ khung cuối cùng, được sử dụng để cập nhật bộ trộn (nếu không ở chế độ một bước)
     mixerUpdateDelta = clock.getDelta();
     if (maplevel.isload) {
+
         maplevel.update(mixerUpdateDelta)
-        if (isPerspectivecamera == 1) {
-            maplevel.character.updateCameraTarget()
-        }
         animateSun(mixerUpdateDelta)
 
         if (maplevel.iswin == true && isstop == false) {
-
+            audioWin.play()
             createText('WIN',)
             animationEndGame()
             isstop = true
             physicsWorld.gravity.set(0, -1000, 0);
         }
         else if (maplevel.isloss == true && isstop == false) {
+            audioLoss.play()
             createText('LOSS',)
             animationEndGame()
             isstop = true
             physicsWorld.gravity.set(0, -1000, 0);
         }
+
+        if (isPerspectivecamera == 1) {
+            maplevel.character.updateCameraTarget()
+        }
+
     }
 
     animationMap(mixerUpdateDelta)
