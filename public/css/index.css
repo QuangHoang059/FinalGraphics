@@ -1,0 +1,93 @@
+@import url("https://use.typekit.net/jmk3xov.css");
+
+
+#time-display {
+    position: absolute;
+    z-index: 2;
+    left: 89%;
+    top: -2%;
+    font-size: 23px;
+    font-weight: 10px;
+    color: rgb(0, 0, 0);
+    border-radius: 3px;
+    padding: 6px;
+    background-color: rgb(184 171 169);
+    box-shadow: 0.2em 0.2em 0.2em;
+}
+
+#control {
+    position: fixed;
+    z-index: 2;
+    top: 95vh;
+}
+
+#control button {
+    width: 100px;
+    height: 30px;
+    border-radius: 2px;
+    border-style: solid;
+    border-color: black;
+    background-color: rgb(87, 105, 139);
+    margin-right: 8px;
+    box-shadow: 0.2em 0.2em 0.2em;
+}
+
+#control button.action {
+    background-color: rgb(241, 25, 25);
+}
+
+#control button.action:hover {
+    background-color: rgb(241, 25, 25);
+    /* Màu nền giống như khi không hover */
+}
+
+#control button:hover {
+    background-color: #fc5a5af2;
+    /* Màu nền mới khi di chuột qua */
+}
+
+#W {
+    position: absolute;
+    top: -42px;
+
+}
+
+#perspective {
+    position: absolute;
+    top: -86vh;
+
+}
+
+
+canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+}
+
+@media only screen and (max-width: 769px) {
+    #control button {
+        width: 50px;
+        height: 25px;
+        border-radius: 2px;
+        font-size: 10px;
+        margin-right: 6px;
+    }
+
+    #W {
+
+        top: -36px;
+
+    }
+
+    #control button#perspective {
+        font-size: 8px;
+        top: -85vh;
+        width: 64px;
+    }
+
+    #time-display {
+        font-size: 15px
+    }
+
+}

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="/image/Iconka-Saint-Whiskers-Cat-cupid-love.ico">
+    <link rel="stylesheet" href="/css/index.css">
+    <title>Test</title>
+</head>
+
+<body>
+    <p id='time-display'></p>
+    <div id="control">
+        <button id="perspective">perspective</button>
+        <button id="A">A</button>
+        <button id="W">W</button>
+        <button id="S">S</button>
+        <button id="D">D</button>
+    </div>
+
+    <canvas id="bg"></canvas>
+    <script src="/js/cannon/cannon.min.js"></script>
+
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "./build/three.module.js",
+                "cannon-es":"/node_modules/cannon-es/dist/cannon-es.js"
+            }
+
+        }
+    </script>
+
+    <script type="module" src="/js/index.js"></script>
+    <script src="/js/constans.js"></script>
+</body>
+
+</html>
