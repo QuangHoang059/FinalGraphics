@@ -43,7 +43,33 @@
 
 #control button:hover {
     background-color: #fc5a5af2;
+    cursor: pointer;
     /* Màu nền mới khi di chuột qua */
+}
+
+#volume {
+    position: fixed;
+    top: 116px;
+}
+
+#volume #volume_off {
+    display: none;
+}
+
+#volume #volume_up {
+    display: block;
+}
+
+#volume.action #volume_off {
+    display: block;
+}
+
+#volume.action #volume_up {
+    display: None;
+}
+
+#volume:hover {
+    cursor: pointer;
 }
 
 #W {

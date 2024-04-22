@@ -51,19 +51,18 @@ export class MapLevel {
     init(level) {
         this.character = new Character(this.scene, this.camera, this.physicsWorld, new THREE.Vector3(0, 0, 0), 'Idle', 0.2)
         this.character.initModel().then(() => {
-            this.initMap(level, (position) => {
+            this.initMap(level).then(() => {
                 setTimeout(() => {
-                    var position_player = position
-                    this.character.setPosition(new THREE.Vector3(position_player.x, 0, position_player.y))
+                    this.character.setPosition(new THREE.Vector3(this.position_player.x, 0, this.position_player.y))
+                    this.createEvent()
                     this.isload = true
                 }, 50)
-            }).then(() => {
-                this.createEvent()
+
             }
             )
         })
     }
-    async initMap(level, calback) {
+    async initMap(level) {
         await this.load(level).then(((structure) => {
             this.structure = structure
             for (var i = 0; i < structure.length; i++) {
@@ -109,8 +108,6 @@ export class MapLevel {
             }
 
         }))
-
-        calback(this.position_player)
         this.starttime = Date.now()
     }
     createEvent() {
@@ -295,7 +292,7 @@ export class MapLevel {
                 return this.character.keysPressed[key];
             });
             if (directionPressed && this.ismovebox == false && this.character.ismover == false) {
-                // console.log(234);
+
                 this.mixerUpdateDelta = mixerUpdateDelta
                 var collidingBlock = null;
 
@@ -354,7 +351,7 @@ export class MapLevel {
                 }
                 else {
                     var currentCollisionTime = Date.now()
-                    if (this.lastCollisionTime !== null && (currentCollisionTime - this.lastCollisionTime) >= 350) {
+                    if (this.lastCollisionTime !== null && (currentCollisionTime - this.lastCollisionTime) >= 250) {
                         this.character.togglePush = false;
                         this.lastCollisionTime = null;
                     }

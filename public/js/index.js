@@ -31,6 +31,7 @@ const audioGame = new THREE.Audio(listener);
 var isAnimationEnd = false
 let level = 1
 const PERSPECTIVE = document.getElementById('perspective')
+const VOLUME = document.getElementById('volume')
 function init() {
     initGraphis()
     initOBJ(level)
@@ -146,7 +147,7 @@ function initOBJ(level) {
         audioGame.setVolume(1);
         setTimeout(() => {
             audioGame.play()
-            console.log(24);
+
         }, 500)
 
     });
@@ -337,7 +338,7 @@ function createPanel() {
 
 }
 
-var latertime = Date.now();
+
 function clearScene() {
     scene.clear()
     //reset parameters
@@ -373,14 +374,14 @@ function onPointerMove(event) {
         })[0];
 
         if (res && res.object) {
-            var currenttime = Date.now()
-            if (currenttime - latertime > 1000 && isAnimationEnd == false) {
+
+            if (maplevel.isload == true && isAnimationEnd == false) {
                 if (res.object.name == 'arrowrigh') {
                     level += 1
                     if (level > 18) level = 18
                     clearScene()
                     initOBJ(level)
-                    latertime = currenttime
+
                 }
                 else if (res.object.name == 'arrowleft') {
 
@@ -388,12 +389,12 @@ function onPointerMove(event) {
                     if (level < 1) level = 1
                     clearScene()
                     initOBJ(level)
-                    latertime = currenttime
+
                 }
                 else if (res.object.name == "button2") {
                     clearScene()
                     initOBJ(level)
-                    latertime = currenttime
+
                 }
             }
         }
@@ -433,6 +434,13 @@ function addEvent() {
     }
     PERSPECTIVE.ontouchend = () => {
         PERSPECTIVE.classList.remove('action')
+    }
+    VOLUME.onclick = (e) => {
+        VOLUME.classList.toggle('action')
+        if (audioGame.getVolume() > 0)
+            audioGame.setVolume(0)
+        else
+            audioGame.setVolume(1)
     }
 }
 
