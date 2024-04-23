@@ -45,8 +45,8 @@ function initGraphis() {
     scene = new THREE.Scene();
     const loadTexture = new THREE.TextureLoader();
     const texturebackground = loadTexture.load('image/background.jpg')
-    scene.background = texturebackground
 
+    scene.background = texturebackground
     //init camera
     camera = new THREE.PerspectiveCamera(
         75,
@@ -131,7 +131,8 @@ function initOBJ(level) {
 
     // create sun
     createSun()
-
+    const ambientlight = new THREE.AmbientLight(1)
+    scene.add(ambientlight)
     // crate map
     maplevel = new MapLevel(scene, camera, physicsWorld)
     maplevel.init(level)
@@ -178,7 +179,7 @@ function createSun() {
         texture.repeat.set(1.5, 1.5)
     })
     const phereSun = new THREE.Mesh(geometry, material);
-    dirLight = new THREE.DirectionalLight(0xffffff, 2.4)
+    dirLight = new THREE.DirectionalLight(0xffffff, 2)
 
     dirLight.castShadow = true;
     dirLight.shadow.camera.top = 500;

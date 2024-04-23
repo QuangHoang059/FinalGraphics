@@ -50,6 +50,7 @@
 #volume {
     position: fixed;
     top: 116px;
+    color: #f7f7f7;
 }
 
 #volume #volume_off {
