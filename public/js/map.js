@@ -56,14 +56,16 @@ export class MapLevel {
                     this.character.setPosition(new THREE.Vector3(this.position_player.x, 0, this.position_player.y))
                     this.createEvent()
                     this.isload = true
-                }, 50)
+                }, 300)
 
             }
             )
         })
     }
     async initMap(level) {
-        await this.load(level).then(((structure) => {
+        await this.load(level, (position) => {
+            this.position_player = position
+        }).then(((structure) => {
             this.structure = structure
             for (var i = 0; i < structure.length; i++) {
                 for (var j = 0; j < structure[i].length; j++) {
@@ -373,7 +375,7 @@ export class MapLevel {
 
     }
 
-    async load(level) {
+    async load(level, callback) {
         const levelFilePath = `sokobanLevels/test${level}.txt`
         let structure = []
         const response = await fetch(levelFilePath)
@@ -397,6 +399,7 @@ export class MapLevel {
                 } else if (rows[y][x] === '&') {
                     level_row.push(AIR);
                     this.position_player.set(y * this.groundSize, x * this.groundSize);
+                    callback(this.position_player)
                 }
             }
             structure.push(level_row);
