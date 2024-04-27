@@ -10,14 +10,14 @@ import { MapLevel } from './map.js';
 import { FBXLoader } from '/jsm/loaders/FBXLoader.js';
 import { FontLoader } from '/jsm/loaders/FontLoader.js';
 import { TextGeometry } from '/jsm/geometries/TextGeometry.js';
-
+import { Block } from './block.js'
 import TWEEN from '/tween/tween.esm.js';
 import CannonDebugger from '/cannon-es-debugger/dist/cannon-es-debugger.js'
 let cannonDebugger
 let physicsWorld
 let scene, renderer, camera, stats, controls
 let clock, maplevel, mixerUpdateDelta,
-    buttonreset, isstop = false, sun, dirLight, groupChangeMap
+    buttonreset, isstop = false, sun, dirLight, groupChangeMap, iscube = false, teapotBlock, cubeBlock
 let oldPerspectivecamera = 1, isPerspectivecamera = 1
 let settings;
 const raycaster = new THREE.Raycaster();
@@ -135,13 +135,17 @@ function initOBJ(level) {
     scene.add(ambientlight)
     // crate map
     maplevel = new MapLevel(scene, camera, physicsWorld)
-    maplevel.init(level)
+    maplevel.init(level, () => {
+        maplevel.changeGeometryCube(iscube)
+    })
+
     //change map
     createChangeMap(level)
+    //create change cube
+    createChangeCube()
     // load model reset
     createResetMap()
     //creat sound map
-
     audioLoader.load('audio/sound_lv' + level + '.mp3', function (buffer) {
         audioGame.setBuffer(buffer);
         audioGame.setLoop(true)
@@ -155,8 +159,19 @@ function initOBJ(level) {
     cannonDebugger = new CannonDebugger(scene, physicsWorld, {
         // options...
     })
+    // createPanel()
 }
-
+function createChangeCube() {
+    cubeBlock = new Block(scene, physicsWorld, 1)
+    cubeBlock.setPosition(new THREE.Vector3(-20, 35, 20))
+    cubeBlock.cube.name = 'cubeBlock'
+    cubeBlock.setisTagert(!iscube)
+    teapotBlock = new Block(scene, physicsWorld, 1)
+    teapotBlock.cube.name = 'teapotBlock'
+    teapotBlock.setPosition(new THREE.Vector3(-20, 35, 0))
+    teapotBlock.changeGeometry(1)
+    teapotBlock.setisTagert(iscube)
+}
 function createSun() {
     const loader = new THREE.TextureLoader()
 
@@ -324,7 +339,8 @@ function createPanel() {
     const folder1 = panel.addFolder('Visibility');
     settings = {
         'Personal camera': true,
-        'Skeleton': false
+        'Skeleton': false,
+        'ChangeGeometry': false,
 
     };
     folder1.add(settings, 'Personal camera').onChange((Visibility) => {
@@ -333,6 +349,10 @@ function createPanel() {
     });
     folder1.add(settings, 'Skeleton').onChange((Visibility) => {
         maplevel.character.skeleton.visible = Visibility
+    });
+    folder1.add(settings, 'ChangeGeometry').onChange((Visibility) => {
+
+        maplevel.changeGeometryCube(Visibility)
     });
 
     folder1.open();
@@ -348,6 +368,7 @@ function clearScene() {
     audioWin.stop()
     isstop = false
     isPerspectivecamera = oldPerspectivecamera
+
     physicsWorld.gravity.set(0, -9.8, 0);
     initialY = 20
     initialAngle = Math.acos(initialY / 200);
@@ -364,7 +385,7 @@ function onPointerMove(event) {
     raycaster.setFromCamera(pointer, camera);
 
     const intersects = raycaster.intersectObjects([buttonreset,
-        groupChangeMap.getObjectByName('arrowrigh'), groupChangeMap.getObjectByName('arrowleft')], true);
+        groupChangeMap.getObjectByName('arrowrigh'), groupChangeMap.getObjectByName('arrowleft'), cubeBlock.cube, teapotBlock.cube], true);
 
     if (intersects.length > 0) {
 
@@ -396,6 +417,18 @@ function onPointerMove(event) {
                     clearScene()
                     initOBJ(level)
 
+                }
+                else if (res.object.name == "cubeBlock") {
+                    iscube = false
+                    maplevel.changeGeometryCube(iscube)
+                    cubeBlock.setisTagert(!iscube)
+                    teapotBlock.setisTagert(iscube)
+                }
+                else if (res.object.name == "teapotBlock") {
+                    iscube = true
+                    teapotBlock.setisTagert(iscube)
+                    maplevel.changeGeometryCube(iscube)
+                    cubeBlock.setisTagert(!iscube)
                 }
             }
         }
@@ -444,7 +477,7 @@ function addEvent() {
             audioGame.setVolume(1)
     }
 }
-
+// animation Map
 function animationMap(mixerUpdateDelta) {
     if (groupChangeMap) {
         var changemap = groupChangeMap.getObjectByName('boxmap')
@@ -504,6 +537,7 @@ function animateTextAppear(text) {
 var initialY = 20; // Giá trị y ban đầu
 var initialAngle = Math.acos(initialY / RADIUS); // Tính góc ban đầu dựa trên y ban đầu
 var elapsedTime = 2 * Math.PI - (initialAngle * 60) / Math.PI
+//Aimation sun
 function animateSun(mixerUpdateDelta) {
     sun.rotation.y += mixerUpdateDelta
     //tốc độ quay
@@ -515,7 +549,13 @@ function animateSun(mixerUpdateDelta) {
     sun.position.set(x, y, - 10)
     dirLight.position.copy(sun.position)
 }
+//Animation change Cube
+function animateChangeCube(mixerUpdateDelta) {
 
+    cubeBlock.cube.rotation.y += mixerUpdateDelta
+    teapotBlock.cube.rotation.y += mixerUpdateDelta
+
+}
 function animate() {
     // Render loop
     requestAnimationFrame(animate);
@@ -525,7 +565,7 @@ function animate() {
 
         maplevel.update(mixerUpdateDelta)
         animateSun(mixerUpdateDelta)
-
+        animateChangeCube(mixerUpdateDelta)
         if (maplevel.iswin == true && isstop == false) {
             audioGame.stop()
             audioWin.play()

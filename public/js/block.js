@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 import { TGALoader } from '/jsm/loaders/TGALoader.js';
-
+import { TeapotGeometry } from '/jsm/geometries/TeapotGeometry.js'
 export class Block {
     loader = new TGALoader()
     cubeGeo = new THREE.BoxGeometry(WIDTH, WIDTH, WIDTH);
+    teapotBuffer = new TeapotGeometry(4)
     scene
     positon = new THREE.Vector3()
     physicsWorld
@@ -52,9 +53,17 @@ export class Block {
         this.texture.colorSpace = THREE.SRGBColorSpace;
         this.cube.material.map = this.texture
     }
+    changeGeometry(isTeaport) {
+        if (isTeaport) {
+            this.cube.geometry = this.teapotBuffer
+        }
+        else {
+            this.cube.geometry = this.cubeGeo
+        }
+    }
     setPosition(positon) {
         this.body.position.copy(positon)
-        this.cbue.position.copy(positon)
+        this.cube.position.copy(positon)
 
     }
     setQuaternion(quaternion) {
@@ -68,6 +77,7 @@ export class Block {
     load() {
 
         this.cube = new THREE.Mesh(this.cubeGeo, this.cubeMaterial);
+
         this.cube.position.copy(this.positon)
         this.cube.castShadow = true
 

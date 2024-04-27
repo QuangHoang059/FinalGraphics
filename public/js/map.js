@@ -48,7 +48,8 @@ export class MapLevel {
         this.camera = camera
 
     }
-    init(level) {
+    init(level, callback) {
+
         this.character = new Character(this.scene, this.camera, this.physicsWorld, new THREE.Vector3(0, 0, 0), 'Idle', 0.2)
         this.character.initModel().then(() => {
             this.initMap(level).then(() => {
@@ -56,6 +57,7 @@ export class MapLevel {
                     this.character.setPosition(new THREE.Vector3(this.position_player.x, 0, this.position_player.y))
                     this.createEvent()
                     this.isload = true
+                    callback()
                 }, 300)
 
             }
@@ -111,6 +113,20 @@ export class MapLevel {
 
         }))
         this.starttime = Date.now()
+    }
+    changeGeometryCube(isTeaport) {
+        console.log(this.blocks);
+        if (isTeaport) {
+            this.blocks.forEach((block) => {
+                block.changeGeometry(isTeaport)
+            })
+        }
+        else {
+            this.blocks.forEach((block) => {
+                block.changeGeometry(isTeaport)
+            })
+        }
+
     }
     createEvent() {
         document.addEventListener('keydown', (event) => {
@@ -274,8 +290,6 @@ export class MapLevel {
         }
         return 0
     }
-
-
     update(mixerUpdateDelta) {
         if (this.currentTime < TIMEOUT) {
             this.currentTime = Math.round((Date.now() - this.starttime) / 1000)
