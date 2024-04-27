@@ -44,7 +44,7 @@
 #control button:hover {
     background-color: #fc5a5af2;
     cursor: pointer;
-    /* Màu nền mới khi di chuột qua */
+ 
 }
 
 #volume {
@@ -115,6 +115,11 @@ canvas {
 
     #time-display {
         font-size: 15px
+    }
+    #control button:hover {
+        background-color: rgb(87, 105, 139);
+        cursor: pointer;
+        /* Màu nền mới khi di chuột qua */
     }
 
 }

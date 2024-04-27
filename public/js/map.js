@@ -115,7 +115,7 @@ export class MapLevel {
         this.starttime = Date.now()
     }
     changeGeometryCube(isTeaport) {
-        console.log(this.blocks);
+
         if (isTeaport) {
             this.blocks.forEach((block) => {
                 block.changeGeometry(isTeaport)

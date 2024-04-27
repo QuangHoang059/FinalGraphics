@@ -455,20 +455,31 @@ function addEvent() {
             maplevel.character.skeleton.visible = !maplevel.character.skeleton.visible
         }
     })
-    PERSPECTIVE.onmousedown = () => {
-        changePersontivecamera()
-        PERSPECTIVE.classList.add('action')
-    }
+
+    PERSPECTIVE.onclick = (event) => {
+        if (!PERSPECTIVE.classList.contains('action')) {
+
+            changePersontivecamera();
+            PERSPECTIVE.classList.add('action');
+        }
+    };
+
     PERSPECTIVE.onmouseup = () => {
-        PERSPECTIVE.classList.remove('action')
-    }
-    PERSPECTIVE.ontouchstart = () => {
-        changePersontivecamera()
-        PERSPECTIVE.classList.add('action')
-    }
+        PERSPECTIVE.classList.remove('action');
+    };
+
+    PERSPECTIVE.ontouchstart = (event) => {
+        if (!PERSPECTIVE.classList.contains('action')) {
+            changePersontivecamera();
+            PERSPECTIVE.classList.add('action');
+        }
+        event.preventDefault(); // Ngăn chặn sự kiện click
+    };
+
     PERSPECTIVE.ontouchend = () => {
-        PERSPECTIVE.classList.remove('action')
-    }
+        PERSPECTIVE.classList.remove('action');
+
+    };
     VOLUME.onclick = (e) => {
         VOLUME.classList.toggle('action')
         if (audioGame.getVolume() > 0)
