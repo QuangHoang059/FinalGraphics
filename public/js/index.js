@@ -43,10 +43,17 @@ function init() {
 init();
 function initGraphis() {
     scene = new THREE.Scene();
-    const loadTexture = new THREE.TextureLoader();
-    const texturebackground = loadTexture.load('image/background.jpg')
+    const path = 'TextureCube/';
+    const format = '.jpg';
+    const format1 = '.png';
+    const urls = [
+        path + 'front' + format1, path + 'back' + format1,
+        path + 'up' + format1, path + 'down' + format1,
+        path + 'left' + format1, path + 'right' + format1
+    ];
 
-    scene.background = texturebackground
+    const textureCube = new THREE.CubeTextureLoader().load(urls);
+    scene.background = new THREE.CubeTextureLoader().load(urls);
     //init camera
     camera = new THREE.PerspectiveCamera(
         75,
@@ -358,7 +365,6 @@ function createPanel() {
     folder1.open();
 
 }
-
 
 function clearScene() {
     scene.clear()
