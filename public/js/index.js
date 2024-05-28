@@ -13,11 +13,14 @@ import { TextGeometry } from '/jsm/geometries/TextGeometry.js';
 import { Block } from './block.js'
 import TWEEN from '/tween/tween.esm.js';
 import CannonDebugger from '/cannon-es-debugger/dist/cannon-es-debugger.js'
+
+import { Lensflare, LensflareElement } from '/jsm/objects/Lensflare.js';
+
 let cannonDebugger
 let physicsWorld
 let scene, renderer, camera, stats, controls
 let clock, maplevel, mixerUpdateDelta,
-    buttonreset, isstop = false, sun, dirLight, groupChangeMap, iscube = false, teapotBlock, cubeBlock
+    buttonreset, isstop = false, sun, dirLight, groupChangeMap, iscube = false, teapotBlock, cubeBlock, lensflare
 let oldPerspectivecamera = 1, isPerspectivecamera = 1
 let settings;
 const raycaster = new THREE.Raycaster();
@@ -44,15 +47,13 @@ init();
 function initGraphis() {
     scene = new THREE.Scene();
     const path = 'TextureCube/';
-    const format = '.jpg';
-    const format1 = '.png';
+    const format = '.png';
     const urls = [
-        path + 'front' + format1, path + 'back' + format1,
-        path + 'up' + format1, path + 'down' + format1,
-        path + 'left' + format1, path + 'right' + format1
+        path + 'front' + format, path + 'back' + format,
+        path + 'up' + format, path + 'down' + format,
+        path + 'left' + format, path + 'right' + format
     ];
 
-    const textureCube = new THREE.CubeTextureLoader().load(urls);
     scene.background = new THREE.CubeTextureLoader().load(urls);
     //init camera
     camera = new THREE.PerspectiveCamera(
@@ -90,6 +91,7 @@ function initGraphis() {
     renderer.render(scene, camera)
     renderer.physicallyCorrectLights = true
 
+    renderer.setClearColor(0x000000, 0.0);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 
     renderer.shadowMap.enabled = true;
@@ -128,6 +130,8 @@ function initGraphis() {
 
     });
     // createPanel()
+
+
 
 }
 
@@ -180,26 +184,20 @@ function createChangeCube() {
     teapotBlock.setisTagert(iscube)
 }
 function createSun() {
+
     const loader = new THREE.TextureLoader()
 
     const geometry = new THREE.SphereGeometry(5, 32, 32);
-    const material = new THREE.MeshPhysicalMaterial({
-        // color: 0xFF5622,
-        emissive: 0xFF5622, // Ánh sáng phát ra từ mặt trời
+    const material = new THREE.MeshPhongMaterial({
+        color: 0xffff00,
+        emissive: 0xffff00, // Ánh sáng phát ra từ mặt trời
         emissiveIntensity: 1, // Độ sáng của ánh sáng phát ra
         map: loader.load('./image/texture_sun.jpg'),
-        bumpMap: loader.load('./image/bump_sun.avif'),
-        roughnessMap: loader.load('./image/bumpmap_sun.jpg'),
+        bumpMap: loader.load('./image/bumpmap_sun.jpg'),
         bumpScale: 1,
-        roughness: 1,
+        specular: 0xffffff,
+        shininess: 50
     });
-    var maps = ['map', 'bumpMap', 'roughnessMap']
-    maps.forEach(map => {
-        var texture = material[map]
-        texture.wrapS = THREE.RepeatWrapping
-        texture.wrapT = THREE.RepeatWrapping
-        texture.repeat.set(1.5, 1.5)
-    })
     const phereSun = new THREE.Mesh(geometry, material);
     dirLight = new THREE.DirectionalLight(0xffffff, 2)
 
@@ -213,14 +211,27 @@ function createSun() {
     dirLight.shadow.mapSize.width = 4096;
     dirLight.shadow.mapSize.height = 4096;
     dirLight.name = 'light'
+
+    const textureFlare0 = loader.load('./image/lensflare0.png');
+    const textureFlare3 = loader.load('./image/lensflare3.png');
+    const lensflare = new Lensflare();
+    lensflare.addElement(new LensflareElement(textureFlare0, 500, 0, dirLight.color));
+    lensflare.addElement(new LensflareElement(textureFlare3, 60, 0.0));
+    lensflare.addElement(new LensflareElement(textureFlare3, 70, 0.4));
+    lensflare.addElement(new LensflareElement(textureFlare3, 120, 0.6));
+    lensflare.addElement(new LensflareElement(textureFlare3, 70, 7));
+
+    dirLight.add(lensflare)
+    // dirLight.position.set(-1, 2, 0)
+
     sun = new THREE.Group()
     sun.add(phereSun)
     sun.add(dirLight)
+    // sun.add(lensflare)
 
     sun.position.set(- 60, 20, - 10)
-    dirLight.position.copy(sun.position)
 
-    scene.add(sun, dirLight);
+    scene.add(sun);
 
 }
 function createText(text, color = 0xffffff) {
@@ -462,15 +473,17 @@ function addEvent() {
         }
     })
 
-    PERSPECTIVE.onclick = (event) => {
+    PERSPECTIVE.onmousedown = (event) => {
         if (!PERSPECTIVE.classList.contains('action')) {
 
             changePersontivecamera();
             PERSPECTIVE.classList.add('action');
         }
+        event.preventDefault();
     };
 
     PERSPECTIVE.onmouseup = () => {
+        console.log(123);
         PERSPECTIVE.classList.remove('action');
     };
 
@@ -564,8 +577,9 @@ function animateSun(mixerUpdateDelta) {
     var x = Math.sin(angle) * RADIUS; // Di chuyển theo trục X
     var y = Math.cos(angle) * RADIUS; // Di chuyển theo trục Y
     sun.position.set(x, y, - 10)
-    dirLight.position.copy(sun.position)
+    // dirLight.position.copy(sun.position)
 }
+
 //Animation change Cube
 function animateChangeCube(mixerUpdateDelta) {
 
@@ -576,12 +590,14 @@ function animateChangeCube(mixerUpdateDelta) {
 function animate() {
     // Render loop
     requestAnimationFrame(animate);
+
     // Lấy thời gian đã trôi qua kể từ khung cuối cùng, được sử dụng để cập nhật bộ trộn (nếu không ở chế độ một bước)
     mixerUpdateDelta = clock.getDelta();
     if (maplevel.isload) {
 
         maplevel.update(mixerUpdateDelta)
         animateSun(mixerUpdateDelta)
+
         animateChangeCube(mixerUpdateDelta)
         if (maplevel.iswin == true && isstop == false) {
             audioGame.stop()

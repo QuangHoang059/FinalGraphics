@@ -6,7 +6,7 @@ const BOX = 3
 const TARGET = 4
 const TARGET_FILLED = 5
 const WIDTH = 10
-const RADIUS = 200
+const RADIUS = 400
 //direction
 const W = 'w'
 const A = 'a'
