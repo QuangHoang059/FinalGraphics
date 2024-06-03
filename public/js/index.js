@@ -161,10 +161,16 @@ function initOBJ(level) {
         audioGame.setBuffer(buffer);
         audioGame.setLoop(true)
         audioGame.setVolume(1);
+
         setTimeout(() => {
             audioGame.play()
-
+            if (VOLUME.classList.contains("action")) {
+                audioGame.setVolume(0);
+            }
         }, 500)
+
+
+
 
     });
     cannonDebugger = new CannonDebugger(scene, physicsWorld, {
@@ -307,8 +313,8 @@ function createResetMap() {
             }
         })
         buttonreset.scale.setScalar(0.7)
-        const buttonlight = new THREE.DirectionalLight(0xffffff, 0.1);
-        buttonlight.position.set(-10, 20, -30)
+        const buttonlight = new THREE.DirectionalLight(0xffffff, 3);
+        buttonlight.position.set(-10, 10, -20)
         scene.add(buttonreset, buttonlight)
 
     })

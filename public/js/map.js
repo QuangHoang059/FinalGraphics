@@ -130,6 +130,7 @@ export class MapLevel {
     }
     createEvent() {
         document.addEventListener('keydown', (event) => {
+
             if (this.character.ismover == false) {
                 if (event.shiftKey && this.character) {
                     // this.character.switchRunToggle();
@@ -145,9 +146,12 @@ export class MapLevel {
                 }
             }
 
+
+
         }, false);
 
         document.addEventListener('keyup', (event) => {
+
             let key = event.key.toLowerCase()
             if (key in KEYACTION) {
 
@@ -293,7 +297,9 @@ export class MapLevel {
     update(mixerUpdateDelta) {
         if (this.currentTime < TIMEOUT) {
             this.currentTime = Math.round((Date.now() - this.starttime) / 1000)
-            document.getElementById('time-display').innerText = "  TIME: " + this.currentTime + "s/120s  ";
+            document.getElementById('time-display1').innerText = "  TIME: " + this.currentTime + "s/120s  ";
+            document.getElementById('time-display').value = this.currentTime;
+
         }
         else {
             this.isloss = true

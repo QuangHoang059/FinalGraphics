@@ -2,20 +2,35 @@
 
 
 #time-display {
-    position: absolute;
-    z-index: 2;
-    left: 89%;
-    top: -2%;
+   
+ 
     font-size: 23px;
     font-weight: 10px;
     color: rgb(0, 0, 0);
     border-radius: 3px;
     padding: 6px;
-    background-color: rgb(184 171 169);
-    box-shadow: 0.2em 0.2em 0.2em;
+   
     max-width: 90px;
 }
-
+#time-display1 {
+    
+    font-size: 23px;
+    font-weight: 10px;
+    color: rgb(0, 0, 0);
+    border-radius: 3px;
+    padding: 6px;
+    margin-bottom: 0px;
+    max-width: 90px;
+}
+#time{
+    background-color: rgb(184 171 169);
+    position: absolute;
+    z-index: 2;
+    left: 89%;
+    top: -2%;
+    margin-bottom: 0px;
+    box-shadow: 0.2em 0.2em 0.2em;
+}
 #control {
     position: fixed;
     z-index: 2;
@@ -51,7 +66,7 @@
 #volume {
     position: fixed;
     top: 116px;
-    color: #f7f7f7;
+    color: #000000;;
 }
 
 #volume #volume_off {
@@ -115,6 +130,9 @@ canvas {
     }
 
     #time-display {
+        font-size: 15px
+    }
+    #time-display1 {
         font-size: 15px
     }
     #control button:hover {
